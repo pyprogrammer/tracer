@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script src="wtf.js"></script>
 <script src="error-stack-parser.min.js"> </script>	
 <script>
 	(function () {
@@ -14,21 +13,16 @@
         };
         tags = 0;
         var old_createElement = document.createElement;
-        document.createElement = WTF.trace.instrument(
-                function(tagName) {
+        document.createElement = function(tagName) {
                     console.log("Create");
                     var trace = ErrorStackParser.parse(new Error());
                     traces["createElement"].push(trace);
                     var el = old_createElement.call(document, tagName);
                     el.attributes["metadata-tag"] = tags;
                     dataTags[tags] = trace;
-                    tags += 1
+                    tags += 1;
                     return el;
-                },
-                "document.createElement(any tagName)"
-        );
-        document.createElement("div");
-        console.log("Created Element");
+                };
 	})();
     </script>
 </head>
