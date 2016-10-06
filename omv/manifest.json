@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+
+  "name": "Overlapping Multiverses",
+  "description": "This extension creates multiple overlapping universes. Use with care.",
+  "version": "1.0",
+
+  "browser_action": {
+		"default_icon": "icon.png",
+		"default_popup": "popup.html"
+	},
+
+   "web_accessible_resources": [
+      "tracer.js"
+   ],
+
+	"content_scripts": [
+      {
+         "matches": ["http://*/*", "https://*/*"],
+         "js": ["loader.js"]
+      }
+   ]
+}
