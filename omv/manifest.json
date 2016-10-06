@@ -11,7 +11,8 @@
 	},
 
    "web_accessible_resources": [
-      "tracer.js"
+      "tracer.js",
+     "error-stack-parser.min.js"
    ],
 
 	"content_scripts": [
