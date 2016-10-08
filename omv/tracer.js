@@ -37,4 +37,36 @@
       tags += 1;
       return el;
    };
+
+   /* Properties */
+   // var documentElement = document.documentElement;
+   // Object.defineProperty(
+   //    document, "documentElement", {
+   //       get: function() {console.log("DocumentElement"); return documentElement;}
+   //    }
+   // );
+   //
+   // var body = document.body;
+   // Object.defineProperty(
+   //    document, "body", {
+   //       get: function() {console.log("body"); return body;}
+   //    }
+   // );
+
+   var properties = ["documentElement", "body"];
+   var backups = {};
+   properties.forEach(
+      function(val, index, arr) {
+         backups[val] = document[val];
+         Object.defineProperty(
+            document, val, {
+               get: function() {
+                  console.log(val);
+                  return backups[val];
+               }
+            }
+         )
+      }
+   );
+
 })();
