@@ -9,9 +9,11 @@
       "localhost:8000/adblock-breaker.js"
    ];
 
-   traces = {
+   var traces = {
       "createElement": []
    };
+
+   var newDocument = document.cloneNode(true);
 
    function isTrusted(trace) {
       for (var i = 0; i < trace.length; i++) {
@@ -38,35 +40,37 @@
       return el;
    };
 
-   /* Properties */
-   // var documentElement = document.documentElement;
-   // Object.defineProperty(
-   //    document, "documentElement", {
-   //       get: function() {console.log("DocumentElement"); return documentElement;}
-   //    }
-   // );
-   //
-   // var body = document.body;
-   // Object.defineProperty(
-   //    document, "body", {
-   //       get: function() {console.log("body"); return body;}
-   //    }
-   // );
+   var cloned_old_createElement = newDocument.createElement;
+   newDocument.createElement = function(tagName) {
+      console.log("New Create");
+      var trace = ErrorStackParser.parse(new Error());
+      traces["createElement"].push(trace);
+      var el = old_createElement.call(newDocument, tagName);
+      el.attributes["metadata-tag"] = tags;
+      dataTags[tags] = isTrusted(trace);
+      tags += 1;
+      return el;
+   };
 
    var properties = ["documentElement", "body"];
    var backups = {};
+
    properties.forEach(
       function(val, index, arr) {
          backups[val] = document[val];
          Object.defineProperty(
             document, val, {
                get: function() {
+                  var trusted = isTrusted(ErrorStackParser.parse(new Error));
                   console.log(val);
+                  console.log(trusted);
+                  if(!trusted) {
+                     return newDocument[val];
+                  }
                   return backups[val];
                }
             }
          )
       }
    );
-
 })();
