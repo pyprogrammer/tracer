@@ -64,9 +64,9 @@
                   var trusted = isTrusted(ErrorStackParser.parse(new Error));
                   console.log(val);
                   console.log(trusted);
-                  if(!trusted) {
-                     return newDocument[val];
-                  }
+                  // if(!trusted) {
+                  //    return newDocument[val];
+                  // }
                   return backups[val];
                }
             }

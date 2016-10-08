@@ -10,6 +10,14 @@
 		"default_popup": "popup.html"
 	},
 
+  "permissions": [
+    "webRequest", "webRequestBlocking", "webNavigation", "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
    "web_accessible_resources": [
       "tracer.js",
       "error-stack-parser.min.js",
@@ -21,7 +29,8 @@
 	"content_scripts": [
       {
          "matches": ["http://*/*", "https://*/*"],
-         "js": ["sandbox.js", "loader.js"]
+         "js": ["sandbox.js", "loader.js"],
+        "run_at": "document_start"
       }
    ]
 }

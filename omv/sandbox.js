@@ -1,10 +1,9 @@
 function generateWrapper(codeString) {
-   return 
-      "var window = null;" +
+   return "var window = null;" +
       "var document = null;" +
       "var context = { window: window, document: document };" +
       "var eval = getEval(context);" +
-      "(function() { " + codeString + "});"; 
+      "(function() { " + codeString + "})();";
 }
 
 function sandbox(scriptTag) {
@@ -26,6 +25,6 @@ function getEval(context) {
          eval(s);
       };
       return indirect.call(context, s);
-   };
+   }
    return newEval;
 }
