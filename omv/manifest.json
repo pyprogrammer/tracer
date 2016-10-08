@@ -12,7 +12,8 @@
 
    "web_accessible_resources": [
       "tracer.js",
-     "error-stack-parser.min.js"
+     "error-stack-parser.min.js",
+     "blacklist.js"
    ],
 
 	"content_scripts": [
