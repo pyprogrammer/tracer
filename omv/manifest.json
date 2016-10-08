@@ -12,14 +12,16 @@
 
    "web_accessible_resources": [
       "tracer.js",
-     "error-stack-parser.min.js",
-     "blacklist.js"
+      "error-stack-parser.min.js",
+      "blacklist.js",
+      "sandbox.js",
+      "error-stack-parser.min.js"
    ],
 
 	"content_scripts": [
       {
          "matches": ["http://*/*", "https://*/*"],
-         "js": ["loader.js"]
+         "js": ["sandbox.js", "loader.js"]
       }
    ]
 }
