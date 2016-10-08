@@ -10,6 +10,7 @@
       elem.insertBefore(s, elem.firstChild);
    }
 
+   createScript("blacklist.js");
    createScript("tracer.js");
    createScript("error-stack-parser.min.js");
 })();
