@@ -6,7 +6,15 @@
 </head>
 <body>
 Hello
-<script src="doNothing.js"></script>
-<script> console.log("Fuck again"); </script>
+<!--<script src="doNothing.js"></script>-->
+<!--<script> console.log(window); </script>-->
+<script>
+    console.log("breaker");
+    console.log(window);
+    console.log(eval);
+    console.log(eval("window"));
+    var geval = eval;
+    console.log(geval("window"));
+</script>
 </body>
 </html>

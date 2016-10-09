@@ -11,7 +11,7 @@
 	},
 
   "permissions": [
-    "webRequest", "webRequestBlocking", "webNavigation", "<all_urls>"
+    "webRequest", "webRequestBlocking", "webNavigation", "tabs", "<all_urls>"
   ],
 
   "background": {
