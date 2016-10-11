@@ -1,12 +1,23 @@
+//
+// function getEval(context) {
+//    function newEval(s) {
+//       var indirect = function(s) {
+//          return eval(s);
+//       };
+//       return indirect.call(context, s);
+//    }
+//    return newEval;
+// }
 
 function getEval(context) {
-   function newEval(s) {
-      var indirect = function(s) {
-         return eval(s);
-      };
-      return indirect.call(context, s);
+   function evalInContext(js) {
+      //# Return the results of the in-line anonymous function we .call with the passed context
+      return function () {
+         var window = context["window"];
+         return eval(js);
+      }.call(context);
    }
-   return newEval;
+   return evalInContext;
 }
 
 function generateWrapper(codeString) {
