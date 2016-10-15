@@ -19,18 +19,20 @@
   },
 
    "web_accessible_resources": [
+      "bower_components/stackframe/stackframe.js",
+      "bower_components/error-stack-parser/error-stack-parser.js",
+      "bower_components/escodegen/escodegen.js",
+      "bower_components/esprima/esprima.js",
       "tracer.js",
-      "error-stack-parser.min.js",
       "blacklist.js",
       "sandbox.js",
-      "error-stack-parser.min.js"
    ],
 
 	"content_scripts": [
       {
          "matches": ["http://*/*", "https://*/*"],
          "js": ["sandbox.js", "loader.js"],
-        "run_at": "document_start"
+         "run_at": "document_start"
       }
    ]
 }

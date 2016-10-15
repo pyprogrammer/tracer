@@ -22,7 +22,7 @@
             createScript("blacklist.js");
             createScript("tracer.js");
             createScript("sandbox.js");
-            createScript("error-stack-parser.min.js");
+            createScript("error-stack-parser.js");
             var scripts = document.getElementsByTagName('script');
             for (i = 0; i < scripts.length; ++i) {
                sandbox(scripts[i]);
