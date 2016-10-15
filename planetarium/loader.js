@@ -1,5 +1,6 @@
 (function() {
    var elem = (document.head || document.documentElement);
+   var firstChild = null;
    var port = chrome.runtime.connect({name:"requests"});
    port.postMessage({enable:false});
 
@@ -10,19 +11,23 @@
       s.onload = function () {
          this.remove();
       };
-      elem.insertBefore(s, elem.firstChild);
+      if (firstChild == null) {
+         firstChild = elem.firstChild;
+      }
+      elem.insertBefore(s, firstChild);
    }
 
    document.addEventListener("DOMContentLoaded", function (event) {
       var rand = Math.random();
       port.postMessage({enable: true, messageID: rand});
-      console.log("enabled loading");
       chrome.runtime.onMessage.addListener(function listen(message, sender, callback) {
          if (message.messageID == rand) {
+            createScript("bower_components/stackframe/stackframe.js");
+            createScript("bower_components/error-stack-parser/error-stack-parser.js");
+            createScript("bower_components/esprima/esprima.js");
             createScript("blacklist.js");
-            createScript("tracer.js");
             createScript("sandbox.js");
-            createScript("error-stack-parser.js");
+            createScript("tracer.js");
             var scripts = document.getElementsByTagName('script');
             for (i = 0; i < scripts.length; ++i) {
                sandbox(scripts[i]);

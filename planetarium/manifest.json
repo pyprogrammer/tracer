@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
 
-  "name": "Overlapping Multiverses",
-  "description": "This extension creates multiple overlapping universes. Use with care.",
+  "name": "The Planetarium",
+  "description": "Contents volatile. Do not shake.",
   "version": "1.0",
 
   "browser_action": {
@@ -21,17 +21,20 @@
    "web_accessible_resources": [
       "bower_components/stackframe/stackframe.js",
       "bower_components/error-stack-parser/error-stack-parser.js",
-      "bower_components/escodegen/escodegen.js",
       "bower_components/esprima/esprima.js",
-      "tracer.js",
       "blacklist.js",
       "sandbox.js",
+      "tracer.js"
    ],
 
 	"content_scripts": [
       {
          "matches": ["http://*/*", "https://*/*"],
-         "js": ["sandbox.js", "loader.js"],
+         "js": [
+            "bower_components/esprima/esprima.js",
+            "sandbox.js",
+            "loader.js"
+         ],
          "run_at": "document_start"
       }
    ]
