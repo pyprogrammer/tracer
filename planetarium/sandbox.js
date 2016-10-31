@@ -3,6 +3,7 @@ function getEval(context) {
       // Return the results of the in-line anonymous function we .call with the passed context
       return function () {
          var window = context["window"];
+         console.log("captured global eval");
          return eval(js);
       }.call(context);
    }
@@ -51,7 +52,7 @@ function instrumentEvals(code) {
    // eval-like functions.
    traverseAST(tree, function(node) {
       if (node.type === 'CallExpression' && node.arguments.length > 0) {
-         if (node.callee.type === 'Identifier' && node.callee.name === "eval") {
+         if (node.callee.type === 'Identifier' && !(node.callee.name === "eval")) {
             var args = [];
             for (var i = 0; i < node.arguments.length; i++) {
                args[i] = node.arguments[i].range;
