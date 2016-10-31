@@ -13,8 +13,9 @@ function generateWrapper(codeString) {
    // The context needs to be consistent with the function call below in order to mock the environment
    return "(function(){" +
       getEval.toString() + "\n" +
-      "var context = { window: window, document: document };\n" +
-      "(function(window, document, eval) {\n" +
+      "var context = { window: 'breaker', document: document};\n" +
+      "var window = context.window;\n" +
+      "(function(window, document, __reval) {\n" +
          codeString +
       "\n})(window, document, getEval(context));\n})();";
 }
@@ -45,15 +46,19 @@ function randomIdentifier() {
 
 function instrumentEvals(code) {
    var tree = esprima.parse(code, { range: true });
-   evalCalls = []
+   var evalCalls = [];
    // Visit CallExpressions in the AST and note the character ranges for
    // eval-like functions.
    traverseAST(tree, function(node) {
       if (node.type === 'CallExpression' && node.arguments.length > 0) {
          if (node.callee.type === 'Identifier' && node.callee.name === "eval") {
+            var args = [];
+            for (var i = 0; i < node.arguments.length; i++) {
+               args[i] = node.arguments[i].range;
+            }
             evalCalls.push({
                callRange: node.range,
-               argRange: node.arguments[0].range,
+               argRange: args
             });
          }
       }
@@ -63,23 +68,34 @@ function instrumentEvals(code) {
    // we calculated earlier, otherwise we'd need to keep track
    // of the offset.
    for (var i = evalCalls.length - 1; i >= 0; i -= 1) {
-      callRange = evalCalls[i].callRange;
-      callText = code.slice(callRange[0], callRange[1]);
-      argRange = evalCalls[i].argRange;
-      argText = code.slice(argRange[0], argRange[1]);
-      newId = randomIdentifier();
+      var callRange = evalCalls[i].callRange;
+      var callText = code.slice(callRange[0], callRange[1]);
+      var argRange = evalCalls[i].argRange;
+      var argText = code.slice(argRange[0][0], argRange[argRange.length - 1][1]);
+      // var newId = randomIdentifier();
       // Replaces first occurance, which should be correct
       // considering the argument we care about is the first one.
-      instrumentedText = callText.replace(argText, newId);
-      instrumentation = "var " + newId + " = " + argText + ";\n" +
-         "/*if (eval === globalEval) {\n" +
-            newId + " = instrumentEvals(" + newId + ");\n" +
-            "eval = realEval;\n" +
-            instrumentedText + "\n" +
-            "eval = fakeEval;\n" +
-         "} else {\n" +
-            instrumentedText + "\n" +
-         "};*/";
+      // var instrumentedText = callText.replace(argText, newId);
+      // instrumentation = "var " + newId + " = " + argText + ";\n" +
+      //    "/*if (eval === globalEval) {\n" +
+      //       newId + " = instrumentEvals(" + newId + ");\n" +
+      //       "eval = realEval;\n" +
+      //       instrumentedText + "\n" +
+      //       "eval = fakeEval;\n" +
+      //    "} else {\n" +
+      //       instrumentedText + "\n" +
+      //    "};*/";
+      /*
+       If eval is actually eval, then we use local eval. Otherwise, we use the args.
+       */
+      // console.log(callText);
+      var firstArg = code.slice(argRange[0][0], argRange[0][1]);
+      var restArgs = "";
+      // console.log(firstArg);
+      var defaultCall = "__reval(" + argText + ")";
+      var instrumentation = "(eval === __reval ? (typeof " + firstArg +
+         " === 'string' ? __reval(instrumentEvals(" + firstArg +")" + restArgs +"): " + defaultCall +
+         ") :" + defaultCall + ")";
       code = code.slice(0, callRange[0]) + instrumentation + code.slice(callRange[1], code.length);
    }
    return code;
