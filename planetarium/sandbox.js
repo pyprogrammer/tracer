@@ -3,22 +3,21 @@ function getEval(context) {
       // Return the results of the in-line anonymous function we .call with the passed context
       return function () {
          var window = context["window"];
-         console.log("captured global eval");
          return eval(js);
       }.call(context);
    }
    return evalInContext;
 }
 
-function generateWrapper(codeString) {
+function generateWrapper(codeString, trusted) {
    // The context needs to be consistent with the function call below in order to mock the environment
-   return "(function(){" +
+   return "(function(window){" +
       getEval.toString() + "\n" +
-      "var context = { window: 'breaker', document: document};\n" +
-      "var window = context.window;\n" +
+      "var context = { window: window, document: document};\n" +
       "(function(window, document, __reval) {\n" +
          codeString +
-      "\n})(window, document, getEval(context));\n})();";
+      "\n})(window, document, getEval(context));\n})"+
+      (trusted ? "(trustedParam)" : "(untrustedParam)") + ";";
 }
 
 function traverseAST(node, visitor) {
@@ -73,19 +72,6 @@ function instrumentEvals(code) {
       var callText = code.slice(callRange[0], callRange[1]);
       var argRange = evalCalls[i].argRange;
       var argText = code.slice(argRange[0][0], argRange[argRange.length - 1][1]);
-      // var newId = randomIdentifier();
-      // Replaces first occurance, which should be correct
-      // considering the argument we care about is the first one.
-      // var instrumentedText = callText.replace(argText, newId);
-      // instrumentation = "var " + newId + " = " + argText + ";\n" +
-      //    "/*if (eval === globalEval) {\n" +
-      //       newId + " = instrumentEvals(" + newId + ");\n" +
-      //       "eval = realEval;\n" +
-      //       instrumentedText + "\n" +
-      //       "eval = fakeEval;\n" +
-      //    "} else {\n" +
-      //       instrumentedText + "\n" +
-      //    "};*/";
       /*
        If eval is actually eval, then we use local eval. Otherwise, we use the args.
        */
@@ -106,6 +92,7 @@ function sandbox(scriptTag) {
    var newScript = document.createElement('script');
    if (!scriptTag.hasAttribute('sandbox')) {
       var newCode;
+      var scriptURL = document.URL;
       if (scriptTag.hasAttribute('src')) {
          var scriptURL = scriptTag.getAttribute('src');
          var request = new XMLHttpRequest();
@@ -116,7 +103,7 @@ function sandbox(scriptTag) {
       } else {
          newCode = scriptTag.innerHTML;
       }
-      newScript.innerHTML = generateWrapper(instrumentEvals(newCode));
+      newScript.innerHTML = generateWrapper(instrumentEvals(newCode), blacklisted(scriptURL));
       scriptTag.parentNode.insertBefore(newScript, scriptTag);
       scriptTag.parentNode.removeChild(scriptTag);
    } else {
@@ -126,3 +113,25 @@ function sandbox(scriptTag) {
    }
 }
 
+
+
+function mockWindow() {
+   var that = this;
+   var shortCircuitedFunctions = {
+      "confirm": false,
+      "alert": false
+   };
+   for (var attrib in window) {
+      (function(name) {
+         Object.defineProperty(that, name, {
+            get: function () {
+               console.log(name);
+               if (name in shortCircuitedFunctions) {
+                  return (function() { return shortCircuitedFunctions[name]});
+               }
+               return window[name];
+            }
+         });
+      })(attrib);
+   }
+}

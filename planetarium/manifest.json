@@ -32,6 +32,7 @@
          "matches": ["http://*/*", "https://*/*"],
          "js": [
             "bower_components/esprima/esprima.js",
+            "blacklist.js",
             "sandbox.js",
             "loader.js"
          ],

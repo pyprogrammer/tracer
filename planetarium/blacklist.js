@@ -2692,3 +2692,12 @@ blacklist = [
    "autoimg.wetter.de/autoimg/*",
    "bilder.rtl.de/xdot",
 ];
+
+function blacklisted(url) {
+   for (var i = 0; i < blacklist.length; i++) {
+      if (url.indexOf(blacklist[i]) != -1) {
+         return true;
+      }
+   }
+   return false;
+}
