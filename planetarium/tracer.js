@@ -13,6 +13,14 @@
       "createElement": []
    };
 
+   // Catch "new Function" by overwriting Function (yes, it's possible and
+   // turns out to be totally OK).
+   __functionHandle = Function;
+   Function = function() {
+      arguments[arguments.length-1] = instrument(arguments[arguments.length-1]);
+      __functionHandle.apply(this, arguments);
+   }
+
    var newDocument = document.cloneNode(true);
 
    function isTrusted(trace) {

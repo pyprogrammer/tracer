@@ -74,13 +74,14 @@ function instrument(code) {
    // Iterate backwards so that we can safely use the ranges
    // we calculated earlier, otherwise we'd need to keep track
    // of the offset.
-   for (var i = replacements.length - 1; i >= 0; i -= 1) {
+   for (var i = replacements.length-1; i >= 0; i -= 1) {
       // Set to empty by default; some cases are just deleting code.
       var instrumentation = "";
       var replaceRange = replacements[i].replaceRange;
       if (replacements[i].type === 'eval') {
          var callRange = replaceRange;
-         var callText = code.slice(callRange[0], callRange[1]);
+         var callText = code.slice(callRange[0], callRange[1]); 
+         console.log("Eval: " + callText + "\n");
          var argRange = replacements[i].argRange;
          var argText = code.slice(argRange[0][0], argRange[argRange.length - 1][1]);
          // If eval is actually eval, then we use local eval. Otherwise, we use the args.
@@ -97,6 +98,12 @@ function instrument(code) {
       }
       // Replace instrumentation in code.
       code = code.slice(0, replaceRange[0]) + instrumentation + code.slice(replaceRange[1], code.length);
+      // Update previous offsets.
+      for (var j = i-1; j >= 0; j -= 1) {
+         if (replacements[j].replaceRange[1] > replaceRange[0]) {
+            replacements[j].replaceRange[1] += replaceRange[0] - replaceRange[1] + instrumentation.length;
+         }
+      }
    }
    return code;
 }
