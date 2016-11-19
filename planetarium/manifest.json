@@ -19,9 +19,10 @@
   },
 
    "web_accessible_resources": [
-      "bower_components/stackframe/stackframe.js",
-      "bower_components/error-stack-parser/error-stack-parser.js",
-      "bower_components/esprima/esprima.js",
+      "deps/stackframe.js",
+      "deps/error-stack-parser.js",
+      "deps/esprima.js",
+      "deps/escodegen.browser.js",
       "blacklist.js",
       "sandbox.js",
       "tracer.js"
@@ -31,7 +32,8 @@
       {
          "matches": ["http://*/*", "https://*/*"],
          "js": [
-            "bower_components/esprima/esprima.js",
+            "deps/esprima.js",
+            "deps/escodegen.browser.js",
             "blacklist.js",
             "sandbox.js",
             "loader.js"

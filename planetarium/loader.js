@@ -40,9 +40,10 @@
       port.postMessage({enable: true, messageID: rand});
       chrome.runtime.onMessage.addListener(function listen(message, sender, callback) {
          if (message.messageID == rand) {
-            createScript("bower_components/stackframe/stackframe.js");
-            createScript("bower_components/error-stack-parser/error-stack-parser.js");
-            createScript("bower_components/esprima/esprima.js");
+            createScript("deps/stackframe.js");
+            createScript("deps/error-stack-parser.js");
+            createScript("deps/esprima.js");
+            createScript("deps/escodegen.browser.js");
             createScript("blacklist.js");
             createScript("sandbox.js");
             createScript("tracer.js");

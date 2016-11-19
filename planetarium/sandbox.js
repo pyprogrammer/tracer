@@ -21,14 +21,21 @@ function generateWrapper(codeString, trusted) {
 }
 
 function traverseAST(node, visitor) {
-   if (visitor.call(null, node) === false) {
+   if (visitor.call(null, null, null, node) === false) {
       return;
    }
+   _traverseAST(node, visitor);
+}
+
+function _traverseAST(node, visitor) {
    for (prop in node) {
       if (node.hasOwnProperty(prop)) {
          child = node[prop];
          if (typeof child === 'object' && child != null) {
-            traverseAST(child, visitor);
+            if (visitor.call(null, node, prop, child) === false) {
+               return;
+            }
+            _traverseAST(node[prop], visitor);
          }
       }
    }
@@ -44,68 +51,61 @@ function randomIdentifier() {
    return name.join('');
 }
 
-function instrument(code) {
-   var tree = esprima.parse(code, { range: true });
-   var replacements = [];
-   // Visit nodes in the AST to determine pieces we need to replace
-   traverseAST(tree, function(node) {
+function evalInstrumentationAST() {
+   var tree = esprima.parse(`(arg0 === eval ? (typeof arg1 === 'string' ? arg2 : arg3) : arg4)`);
+   var args = arguments;
+   traverseAST(tree, function(nparent, prop, node) {
+      if (node.type === 'Identifier' && node.name.substring(0, 3) === 'arg') {
+         nparent[prop] = args[parseInt(node.name.substring(3))];
+      }
+      return true;
+   });
+   return tree.body[0].expression;
+}
+
+function instrumentCode(code) {
+   var tree = esprima.parse(code);
+   // Visit nodes in the AST and perform node replacement
+   traverseAST(tree, function(nparent, prop, node) {
+      if (nparent === null) {
+         return true;
+      }
       if (node.type === 'CallExpression' && node.arguments.length > 0) {
          if (node.callee.type === 'Identifier' && !(node.callee.name === "eval")) {
-            var args = [];
-            for (var i = 0; i < node.arguments.length; i++) {
-               args[i] = node.arguments[i].range;
-            }
-            replacements.push({
-               type: 'eval',
-               replaceRange: node.range,
-               argRange: args
-            });
+            var reval_call1 = {
+               type: 'CallExpression',
+               callee: {
+                  type: 'Identifier',
+                  name: '__reval',
+               },
+               arguments: [{
+                  type: 'CallExpression',
+                  callee: {
+                     type: 'Identifier',
+                     name: 'instrumentCode',
+                  },
+                  arguments: [node.arguments[0]],
+               }].concat(node.arguments.slice(1, node.arguments.length))
+            };
+            var reval_call2 = {
+               type: 'CallExpression',
+               callee: {
+                  type: 'Identifier',
+                  name: '__reval',
+               },
+               arguments: node.arguments
+            };
+            nparent[prop] = evalInstrumentationAST(node.callee, node.arguments[0], reval_call1, reval_call2, node);
          }
       } else if (node.type === 'AssignmentExpression') {
          if (node.left.type === 'Identifier' && node.left.name === 'window') {
-            replacements.push({
-               type: 'windowAssign',
-               replaceRange: [node.range[0], node.right.range[0]]
-            });
+            nparent[prop] = node.right;
          }
       }
       return true;
    });
-   // Iterate backwards so that we can safely use the ranges
-   // we calculated earlier, otherwise we'd need to keep track
-   // of the offset.
-   for (var i = replacements.length-1; i >= 0; i -= 1) {
-      // Set to empty by default; some cases are just deleting code.
-      var instrumentation = "";
-      var replaceRange = replacements[i].replaceRange;
-      if (replacements[i].type === 'eval') {
-         var callRange = replaceRange;
-         var callText = code.slice(callRange[0], callRange[1]); 
-         console.log("Eval: " + callText + "\n");
-         var argRange = replacements[i].argRange;
-         var argText = code.slice(argRange[0][0], argRange[argRange.length - 1][1]);
-         // If eval is actually eval, then we use local eval. Otherwise, we use the args.
-         // console.log(callText);
-         var firstArg = code.slice(argRange[0][0], argRange[0][1]);
-         var restArgs = "";
-         // console.log(firstArg);
-         var defaultCall = "__reval(" + argText + ")";
-         instrumentation = `(eval === __reval ? 
-            (typeof ${firstArg} === 'string' ? 
-               __reval(instrument(${firstArg})${restArgs})
-               : ${defaultCall})
-            : ${defaultCall})`;
-      }
-      // Replace instrumentation in code.
-      code = code.slice(0, replaceRange[0]) + instrumentation + code.slice(replaceRange[1], code.length);
-      // Update previous offsets.
-      for (var j = i-1; j >= 0; j -= 1) {
-         if (replacements[j].replaceRange[1] > replaceRange[0]) {
-            replacements[j].replaceRange[1] += replaceRange[0] - replaceRange[1] + instrumentation.length;
-         }
-      }
-   }
-   return code;
+   var result = escodegen.generate(tree);
+   return result;
 }
 
 function sandbox(scriptTag) {
@@ -123,7 +123,7 @@ function sandbox(scriptTag) {
       } else {
          newCode = scriptTag.innerHTML;
       }
-      newScript.innerHTML = generateWrapper(instrument(newCode), blacklisted(scriptURL));
+      newScript.innerHTML = generateWrapper(instrumentCode(newCode), blacklisted(scriptURL));
       scriptTag.parentNode.insertBefore(newScript, scriptTag);
       scriptTag.parentNode.removeChild(scriptTag);
    } else {
