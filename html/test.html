@@ -9,13 +9,20 @@ Hello
 <!--<script src="doNothing.js"></script>-->
 <!--<script> console.log(window); </script>-->
 <script>
-    console.log("breaker");
-    console.log(window);
-    console.log(eval);
-    console.log(eval("window", 3));
-    console.log(eval('eval("window")'));
+    console.log("TEST EVAL");
+    console.log(window === eval("window", 3));
+    console.log(window === eval('eval("window")'));
     var geval = eval;
-    console.log(geval("window"));
+    console.log(window === geval("window"));
+</script>
+<script>
+    console.log("TEST WINDOW ASSIGN");
+    window = 3;
+    console.log(window !== 3);
+    x = window = 3;
+    console.log(window !== 3 && x === 3);
+    window = x = 3;
+    console.log(window !== 3 && x === 3);
 </script>
 </body>
 </html>

@@ -73,5 +73,4 @@
          )
       }
    );
-   console.log("tracer");
 })();

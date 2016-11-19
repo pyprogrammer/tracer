@@ -1,5 +1,4 @@
 // http://www.volkerschatz.com/net/blacklist.html
-
 blacklist = [
    "101com.com",
    "101order.com",
