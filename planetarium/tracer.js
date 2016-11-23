@@ -13,20 +13,12 @@
       "createElement": []
    };
 
-   // Catch "new Function" by overwriting Function (yes, it's possible and
-   // turns out to be totally OK).
-   __functionHandle = Function;
-   Function = function() {
-      arguments[arguments.length-1] = instrument(arguments[arguments.length-1]);
-      __functionHandle.apply(this, arguments);
-   }
-
    var newDocument = document.cloneNode(true);
 
    function isTrusted(trace) {
       for (var i = 0; i < trace.length; i++) {
          for (var j = 0; j < untrusted.length; j++) {
-            if ((trace[i].fileName.indexOf(untrusted[j])) != -1) {
+            if ((trace[i].filename && trace[i].fileName.indexOf(untrusted[j])) != -1) {
                return false;
             }
          }
@@ -76,7 +68,8 @@
                   //    return newDocument[val];
                   // }
                   return backups[val];
-               }
+               },
+               configurable: true
             }
          )
       }

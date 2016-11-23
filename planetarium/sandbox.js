@@ -13,11 +13,18 @@ function generateWrapper(codeString, trusted) {
    // The context needs to be consistent with the function call below in order to mock the environment
    return `(function(window){
    ${getEval.toString()}
-   var context = { window: window, document: document};
-   (function(window, document, __reval) {
+   
+   function f() {
+      var functionHeader = "(function()";
+      arguments[arguments.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + arguments[arguments.length-1] + "}))();");
+      return new Function(... arguments);
+   }
+   
+   var context = { window: window, document: document, Function: f};
+   (function(window, document, __reval, Function) {
       ${codeString}
-   })(window, document, getEval(context));
-})${trusted ? "(trustedParam)" : "(untrustedParam)"};`;
+   })(window, document, getEval(context), f);
+})(${trusted ? "trustedParam" : "untrustedParam"});`;
 }
 
 function traverseAST(node, visitor) {
