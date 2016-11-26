@@ -3,19 +3,6 @@
    /*
     Create script to place into page
     */
-   function setup () {
-      var codeBlocks = [];
-      codeBlocks.push(mockWindow.toString());
-      codeBlocks.push("var untrustedParam = new mockWindow();");
-
-      var codeScript = document.createElement("script");
-      for (var i = 0; i < codeBlocks.length; i++)
-      {
-         codeScript.innerText += codeBlocks[i] + "\n";
-      }
-      codeScript.setAttribute("sandbox", "0");
-      document.head.appendChild(codeScript);
-   }
 
    var elem = (document.head || document.documentElement);
    var firstChild = null;
@@ -46,6 +33,18 @@
       }
    }
 
+   function pageInject(name) {
+      var scriptURL = chrome.extension.getURL(name);
+      var request = new XMLHttpRequest();
+      request.open('GET', scriptURL, false);
+      request.send();
+      var newCode = request.responseText;
+      var s2 = document.createElement("script");
+      s2.setAttribute("sandbox", "0");
+      s2.innerHTML = newCode;
+      elem.insertBefore(s2, firstChild);
+   }
+
    document.addEventListener("DOMContentLoaded", function (event) {
       var rand = Math.random();
       port.postMessage({enable: true, messageID: rand});
@@ -58,7 +57,8 @@
             createScript("blacklist.js");
             createScript("sandbox.js");
             createScript("tracer.js");
-            setup();
+            pageInject("environment.js");
+            // setup();
             var scripts = document.getElementsByTagName('script');
             for (i = 0; i < scripts.length; ++i) {
                sandbox(scripts[i]);

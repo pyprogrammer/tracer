@@ -17,7 +17,7 @@ function generateWrapper(codeString, trusted) {
    function f() {
       var functionHeader = "(function()";
       arguments[arguments.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + arguments[arguments.length-1] + "}))();");
-      return new Function(... arguments);
+      return new (Function.prototype.bind.apply(Function, arguments));
    }
    
    var context = { window: window, document: document, Function: f};
@@ -71,6 +71,7 @@ function evalInstrumentationAST() {
 }
 
 function instrumentCode(code) {
+   console.log(code);
    var tree = esprima.parse(code);
    // Visit nodes in the AST and perform node replacement
    traverseAST(tree, function(nparent, prop, node) {
@@ -111,7 +112,7 @@ function instrumentCode(code) {
       }
       return true;
    });
-   var result = escodegen.generate(tree);
+   var result = "/*instrumented*/"+escodegen.generate(tree);
    return result;
 }
 
@@ -140,23 +141,3 @@ function sandbox(scriptTag) {
    }
 }
 
-function mockWindow() {
-   var that = this;
-   var shortCircuitedFunctions = {
-      "confirm": false,
-      "alert": false
-   };
-   for (var attrib in window) {
-      (function(name) {
-         Object.defineProperty(that, name, {
-            get: function () {
-               console.log(name);
-               if (name in shortCircuitedFunctions) {
-                  return (function() { return shortCircuitedFunctions[name]});
-               }
-               return window[name];
-            }
-         });
-      })(attrib);
-   }
-}
