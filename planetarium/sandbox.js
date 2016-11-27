@@ -1,3 +1,5 @@
+console.log("SANDBOX.js");
+
 function getEval(context) {
    function evalInContext(js) {
       // Return the results of the in-line anonymous function we .call with the passed context
@@ -16,103 +18,110 @@ function generateWrapper(codeString, trusted) {
    
    function f() {
       var functionHeader = "(function()";
-      arguments[arguments.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + arguments[arguments.length-1] + "}))();");
-      return new (Function.prototype.bind.apply(Function, arguments));
+      var args = Array.prototype.slice.call(arguments);
+      args[args.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + args[args.length-1] + "}))();");
+      args.unshift(null);
+      return new (Function.prototype.bind.apply(Function, args));
    }
    
    var context = { window: window, document: document, Function: f};
    (function(window, document, __reval, Function) {
       ${codeString}
-   })(window, document, getEval(context), f);
+   }).call(window, window, document, getEval(context), f);
 })(${trusted ? "trustedParam" : "untrustedParam"});`;
 }
 
-function traverseAST(node, visitor) {
-   if (visitor.call(null, null, null, node) === false) {
-      return;
-   }
-   _traverseAST(node, visitor);
-}
-
-function _traverseAST(node, visitor) {
-   for (prop in node) {
-      if (node.hasOwnProperty(prop)) {
-         child = node[prop];
-         if (typeof child === 'object' && child != null) {
-            if (visitor.call(null, node, prop, child) === false) {
-               return;
-            }
-            _traverseAST(node[prop], visitor);
+function ASTVisitor(visitor /* function */) {
+   this.visit = visitor.bind(this);
+   this.genericVisit = (function(astNode) {
+      for (var property in astNode) {
+         if (!astNode.hasOwnProperty(property)) continue;
+         if (typeof astNode[property] === 'object' && astNode[property] != null) {
+            astNode[property] = this.visit(astNode[property]);
          }
       }
-   }
+      return astNode;
+   }).bind(this);
 }
 
-function randomIdentifier() {
-   var alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-   var name = [];
-   name.push(alphabet.charAt(Math.floor(Math.random()*26)));
-   for (var i = 0; i < 6; ++i) {
-      name.push(alphabet.charAt(Math.floor(Math.random()*alphabet.length)));
-   }
-   return name.join('');
-}
-
-function evalInstrumentationAST() {
-   var tree = esprima.parse(`(arg0 === eval ? (typeof arg1 === 'string' ? arg2 : arg3) : arg4)`);
-   var args = arguments;
-   traverseAST(tree, function(nparent, prop, node) {
-      if (node.type === 'Identifier' && node.name.substring(0, 3) === 'arg') {
-         nparent[prop] = args[parseInt(node.name.substring(3))];
+function evalInstrumentationAST(name, arglist) {
+   // If we find a node called eval(... arglist);
+   // we replace it with (eval === <handle to real eval> ? eval(instrumentCode(a), b, c, ...) : eval(a, b, c...))
+   var evalHandle = { // eval === <handle to real eval>
+      "type": "BinaryExpression",
+      "operator": "===",
+      "left": {
+         "type": "Identifier",
+         "name": name
+      },
+      "right": {
+         "type": "Identifier",
+         "name": "eval"
       }
-      return true;
-   });
-   return tree.body[0].expression;
+   };
+
+   var evalWithInstrumentation = {
+      "type": "CallExpression",
+      "callee": {
+         "type": "Identifier",
+         "name": "__reval"
+      },
+      "arguments": [
+         {
+            "type": "CallExpression",
+            "callee": {
+               "type": "Identifier",
+               "name": "instrumentCode"
+            },
+            "arguments": [
+               arglist[0]
+            ]
+         },
+         ...arglist.slice(1)
+      ]
+   };
+
+   var originalEvalCall = {
+      "type": "CallExpression",
+      "callee": {
+         "type": "Identifier",
+         "name": name
+      },
+      "arguments": arglist.slice()
+   };
+
+   var conditional = {
+      "type": "ConditionalExpression",
+      "test": evalHandle,
+      "consequent": evalWithInstrumentation,
+      "alternate": originalEvalCall,
+   };
+
+   return conditional;
+}
+
+function instrumentEvals(ast) {
+   var visitor = new ASTVisitor(
+      function(astNode) {
+         if (astNode.type === 'CallExpression' && astNode.arguments.length > 0) {
+            if (astNode.callee.type === 'Identifier' && !(astNode.callee.name === "eval")) {
+               return evalInstrumentationAST(astNode.callee.name, astNode.arguments);
+            }
+         }
+         return this.genericVisit(astNode);
+      }
+   );
+   visitor.visit(ast);
 }
 
 function instrumentCode(code) {
-   console.log(code);
+   if (typeof code !== "string") {
+      return code; // Not actually a code obj
+   }
    var tree = esprima.parse(code);
+   instrumentEvals(tree);
    // Visit nodes in the AST and perform node replacement
-   traverseAST(tree, function(nparent, prop, node) {
-      if (nparent === null) {
-         return true;
-      }
-      if (node.type === 'CallExpression' && node.arguments.length > 0) {
-         if (node.callee.type === 'Identifier' && !(node.callee.name === "eval")) {
-            var reval_call1 = {
-               type: 'CallExpression',
-               callee: {
-                  type: 'Identifier',
-                  name: '__reval',
-               },
-               arguments: [{
-                  type: 'CallExpression',
-                  callee: {
-                     type: 'Identifier',
-                     name: 'instrumentCode',
-                  },
-                  arguments: [node.arguments[0]],
-               }].concat(node.arguments.slice(1, node.arguments.length))
-            };
-            var reval_call2 = {
-               type: 'CallExpression',
-               callee: {
-                  type: 'Identifier',
-                  name: '__reval',
-               },
-               arguments: node.arguments
-            };
-            nparent[prop] = evalInstrumentationAST(node.callee, node.arguments[0], reval_call1, reval_call2, node);
-         }
-      } else if (node.type === 'AssignmentExpression') {
-         if (node.left.type === 'Identifier' && node.left.name === 'window') {
-            nparent[prop] = node.right;
-         }
-      }
-      return true;
-   });
-   var result = "/*instrumented*/"+escodegen.generate(tree);
+   var result = escodegen.generate(tree);
    return result;
 }
 

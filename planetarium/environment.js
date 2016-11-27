@@ -3,7 +3,7 @@
  */
 
 function MockWindow(trust) {
-   return window;
+   // return window;
    var that = this;
    var shortCircuitedFunctions = {
       "confirm": false,
@@ -13,7 +13,7 @@ function MockWindow(trust) {
       (function(name) {
          Object.defineProperty(that, name, {
             get: function () {
-               if (name in shortCircuitedFunctions) {
+               if (name in shortCircuitedFunctions && !trust) {
                   return (function() { return shortCircuitedFunctions[name]});
                }
                return window[name];

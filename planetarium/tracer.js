@@ -30,7 +30,7 @@
    tags = 0;
    var old_createElement = document.createElement;
    document.createElement = function(tagName) {
-      console.log("Create");
+      // console.log("Create");
       var trace = ErrorStackParser.parse(new Error());
       traces["createElement"].push(trace);
       var el = old_createElement.call(document, tagName);
@@ -42,7 +42,7 @@
 
    var cloned_old_createElement = newDocument.createElement;
    newDocument.createElement = function(tagName) {
-      console.log("New Create");
+      // console.log("New Create");
       var trace = ErrorStackParser.parse(new Error());
       traces["createElement"].push(trace);
       var el = old_createElement.call(newDocument, tagName);
@@ -62,11 +62,6 @@
             document, val, {
                get: function() {
                   var trusted = isTrusted(ErrorStackParser.parse(new Error));
-                  console.log(val);
-                  console.log(trusted);
-                  // if(!trusted) {
-                  //    return newDocument[val];
-                  // }
                   return backups[val];
                },
                configurable: true
