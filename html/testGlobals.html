@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Global Test</title>
+</head>
+<body>
+<script>
+    var x = 1;
+    function f() {
+       var x = 5;
+    }
+    f();
+    (function(){var x = 10;})();
+</script>
+
+<script>
+    console.log(x == 1);
+</script>
+</body>
+</html>

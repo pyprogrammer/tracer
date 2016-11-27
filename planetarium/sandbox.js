@@ -1,5 +1,18 @@
 console.log("SANDBOX.js");
 
+function ASTVisitor(visitor /* function */) {
+   this.visit = visitor.bind(this);
+   this.genericVisit = (function(astNode) {
+      for (var property in astNode) {
+         if (!astNode.hasOwnProperty(property)) continue;
+         if (typeof astNode[property] === 'object' && astNode[property] != null) {
+            astNode[property] = this.visit(astNode[property]);
+         }
+      }
+      return astNode;
+   }).bind(this);
+}
+
 function getEval(context) {
    function evalInContext(js) {
       // Return the results of the in-line anonymous function we .call with the passed context
@@ -29,19 +42,6 @@ function generateWrapper(codeString, trusted) {
       ${codeString}
    }).call(window, window, document, getEval(context), f);
 })(${trusted ? "trustedParam" : "untrustedParam"});`;
-}
-
-function ASTVisitor(visitor /* function */) {
-   this.visit = visitor.bind(this);
-   this.genericVisit = (function(astNode) {
-      for (var property in astNode) {
-         if (!astNode.hasOwnProperty(property)) continue;
-         if (typeof astNode[property] === 'object' && astNode[property] != null) {
-            astNode[property] = this.visit(astNode[property]);
-         }
-      }
-      return astNode;
-   }).bind(this);
 }
 
 function evalInstrumentationAST(name, arglist) {
@@ -114,12 +114,67 @@ function instrumentEvals(ast) {
    visitor.visit(ast);
 }
 
+// if Var declarations are made at the top level, they need to become global assigments instead
+/*
+ {
+ "type": "VariableDeclarator",
+ "id": {
+ "type": "Identifier",
+ "name": "x"
+ },
+ "init": {
+ "type": "Literal",
+ "value": 3,
+ "raw": "3"
+ }
+ },
+ */
+
+function variableDeclaratorToAssignment(astNode) {
+   return  {
+         "type": "AssignmentExpression",
+         "operator": "=",
+         "left": astNode.id,
+         "right": astNode.init != null ? astNode.init : {
+            "type": "Identifier",
+            "name": "undefined"
+         }
+   };
+}
+function saveVariables(ast) {
+   var variables = {};
+   return (new ASTVisitor(
+      function (astNode) {
+         if (astNode.type === "VariableDeclaration") {
+            console.log(astNode);
+            var body = [];
+            for (var i = 0; i < astNode.declarations.length; i++) {
+               body.push(variableDeclaratorToAssignment(astNode.declarations[i]));
+            }
+            return {
+               "type": "ExpressionStatement",
+               "expression": {
+                  "type": "SequenceExpression",
+                  "expressions": body
+               }
+            };
+         } else if (astNode.type == "FunctionDeclaration" || astNode.type == "FunctionExpression") {
+            return astNode; // don't visit children
+         }
+         return this.genericVisit(astNode);
+      }
+   )).visit(ast);
+}
+
 function instrumentCode(code) {
    if (typeof code !== "string") {
       return code; // Not actually a code obj
    }
    var tree = esprima.parse(code);
    instrumentEvals(tree);
+   console.log(tree);
+   saveVariables(tree);
+   console.log(tree);
    // Visit nodes in the AST and perform node replacement
    var result = escodegen.generate(tree);
    return result;
