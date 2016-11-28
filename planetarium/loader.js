@@ -11,15 +11,15 @@
 
    function createScript(name, loadBoth=true) {
       var s = document.createElement('script');
-      s.src = chrome.extension.getURL(name);
-      s.setAttribute("sandbox", "0");
-      s.onload = function () {
-         this.remove();
-      };
-      if (firstChild == null) {
-         firstChild = elem.firstChild;
-      }
-      elem.insertBefore(s, firstChild);
+      // s.src = chrome.extension.getURL(name);
+      // s.setAttribute("sandbox", "0");
+      // s.onload = function () {
+      //    this.remove();
+      // };
+      // if (firstChild == null) {
+      //    firstChild = elem.firstChild;
+      // }
+      // elem.insertBefore(s, firstChild);
       if (loadBoth) {
          var scriptURL = chrome.extension.getURL(name);
          var request = new XMLHttpRequest();

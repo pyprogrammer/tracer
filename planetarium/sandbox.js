@@ -36,6 +36,7 @@ function generateWrapper(codeString, trusted) {
       args.unshift(null);
       return new (Function.prototype.bind.apply(Function, args));
    }
+   f.prototype = Function.prototype;
    
    var context = { window: window, document: document, Function: f};
    (function(window, document, __reval, Function) {
@@ -142,7 +143,6 @@ function variableDeclaratorToAssignment(astNode) {
    };
 }
 function saveVariables(ast) {
-   var variables = {};
    return (new ASTVisitor(
       function (astNode) {
          if (astNode.type === "VariableDeclaration") {
@@ -172,9 +172,7 @@ function instrumentCode(code) {
    }
    var tree = esprima.parse(code);
    instrumentEvals(tree);
-   console.log(tree);
    saveVariables(tree);
-   console.log(tree);
    // Visit nodes in the AST and perform node replacement
    var result = escodegen.generate(tree);
    return result;

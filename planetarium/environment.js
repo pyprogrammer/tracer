@@ -3,7 +3,7 @@
  */
 
 function MockWindow(trust) {
-   // return window;
+   return window;
    var that = this;
    var shortCircuitedFunctions = {
       "confirm": false,
@@ -22,6 +22,29 @@ function MockWindow(trust) {
       })(attrib);
    }
 }
+
+(function(){
+   // Mock Node methods
+   var names = [
+      "appendChild",
+      "insertBefore",
+      "removeChild",
+      "replaceChild"
+   ];
+   for (var index in names) {
+      (function(name) {
+         var old = Node.prototype[name];
+         function old(){};
+         Node.prototype[name] = function() {
+            console.log(name);
+            console.log(arguments);
+            var that = this;
+            debugger;
+            return old.apply(that, arguments);
+         };
+      })(names[index]); // Prevent scoping problems
+   }
+})();
 
 
 var untrustedParam = new MockWindow(false);

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Node Test</title>
+</head>
+<body>
+<p id="main">
+    Hello
+</p>
+<script>
+    var main = document.getElementById("main");
+    var newElement = document.createElement("p");
+    newElement.innerText = "Hello #2";
+    document.body.appendChild(newElement);
+</script>
+</body>
+</html>
