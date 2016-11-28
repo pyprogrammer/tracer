@@ -25,8 +25,7 @@
       "deps/escodegen.browser.js",
       "blacklist.js",
       "sandbox.js",
-      "tracer.js",
-     "environment.js"
+      "environment.js"
    ],
 
 	"content_scripts": [

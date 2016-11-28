@@ -121,22 +121,38 @@ function instrumentEvals(ast) {
 
 function variableDeclaratorToAssignment(astNode) {
    return  {
+      "type": "AssignmentExpression",
+      "operator": "=",
+      "left": astNode.id,
+      "right": astNode.init != null ? astNode.init : {
+         "type": "Identifier",
+         "name": "undefined"
+      }
+   };
+}
+function uninitializeVariable(vid) {
+   return  {
+      "type": "ExpressionStatement",
+      "expression": {
          "type": "AssignmentExpression",
          "operator": "=",
-         "left": astNode.id,
-         "right": astNode.init != null ? astNode.init : {
+         "left": vid,
+         "right": {
             "type": "Identifier",
             "name": "undefined"
          }
+      }
    };
 }
 function saveVariables(ast) {
-   return (new ASTVisitor(
+   var accum = [];
+   (new ASTVisitor(
       function (astNode) {
          if (astNode.type === "ForStatement") {
             if (astNode.init && astNode.init.type === "VariableDeclaration") {
                var body = [];
                for (var i = 0; i < astNode.init.declarations.length; i++) {
+                  accum.push(astNode.init.declarations[i].id);
                   body.push(variableDeclaratorToAssignment(astNode.init.declarations[i]));
                }
                astNode.init = {
@@ -148,6 +164,7 @@ function saveVariables(ast) {
          } else if (astNode.type === "VariableDeclaration") {
             var body = [];
             for (var i = 0; i < astNode.declarations.length; i++) {
+               accum.push(astNode.declarations[i].id);
                body.push(variableDeclaratorToAssignment(astNode.declarations[i]));
             }
             return {
@@ -161,6 +178,8 @@ function saveVariables(ast) {
             return astNode; // don't visit children
          } else if (astNode.type == "ForInStatement") {
             if (astNode.left.type == "VariableDeclaration") {
+               // Assume we have an identifier
+               accum.push(astNode.declarations[0].id);
                astNode.left = astNode.left.declarations[0].id;
                return this.genericVisit(astNode);
             }
@@ -168,6 +187,9 @@ function saveVariables(ast) {
          return this.genericVisit(astNode);
       }
    )).visit(ast);
+   for (var i = accum.length-1; i >= 0; --i) {
+      ast.body.unshift(uninitializeVariable(accum[i]));
+   }
 }
 
 function instrumentCode(code) {

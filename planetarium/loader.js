@@ -37,7 +37,6 @@
             createScript("deps/escodegen.browser.js");
             createScript("blacklist.js");
             createScript("sandbox.js");
-            createScript("tracer.js");
             createScript("environment.js");
             // setup();
             var scripts = Array.prototype.slice.apply(document.getElementsByTagName('script'));
