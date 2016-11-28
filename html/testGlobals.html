@@ -14,12 +14,15 @@
     (function(){var x = 10;})();
     for (var y = 0; y < 10; y++);
     for (var z in [1, 2, 3]);
+
+    var n = x || 3;
 </script>
 
 <script>
     console.log(x == 1);
     console.log(y == 10);
     console.log(z == 2);
+    console.log(n == x);
 </script>
 </body>
 </html>

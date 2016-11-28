@@ -131,7 +131,31 @@ function variableDeclaratorToAssignment(astNode) {
    };
 }
 function uninitializeVariable(vid) {
-   return  {
+   var bestNameEver = "asdfljaansfdklnjllijadsfkljasfhiluawef";
+   return  [
+      {
+         "type": "VariableDeclaration",
+         "declarations": [
+            {
+               "type": "VariableDeclarator",
+               "id": {
+                  "type": "Identifier",
+                  "name": bestNameEver
+               },
+               "init": {
+                  "type": "LogicalExpression",
+                  "operator": "||",
+                  "left": vid,
+                  "right": {
+                     "type": "Identifier",
+                     "name": "undefined"
+                  }
+               }
+            }
+         ],
+         "kind": "var"
+      },
+      {
       "type": "ExpressionStatement",
       "expression": {
          "type": "AssignmentExpression",
@@ -139,10 +163,10 @@ function uninitializeVariable(vid) {
          "left": vid,
          "right": {
             "type": "Identifier",
-            "name": "undefined"
+            "name": bestNameEver
          }
       }
-   };
+   }];
 }
 function saveVariables(ast) {
    var accum = [];
@@ -179,7 +203,7 @@ function saveVariables(ast) {
          } else if (astNode.type == "ForInStatement") {
             if (astNode.left.type == "VariableDeclaration") {
                // Assume we have an identifier
-               accum.push(astNode.declarations[0].id);
+               accum.push(astNode.left.declarations[0].id);
                astNode.left = astNode.left.declarations[0].id;
                return this.genericVisit(astNode);
             }
@@ -188,7 +212,10 @@ function saveVariables(ast) {
       }
    )).visit(ast);
    for (var i = accum.length-1; i >= 0; --i) {
-      ast.body.unshift(uninitializeVariable(accum[i]));
+      var tmp = uninitializeVariable(accum[i]);
+      for (var j = 0; j < tmp.length; j++) {
+         ast.body.unshift(tmp[j]);
+      }
    }
 }
 
