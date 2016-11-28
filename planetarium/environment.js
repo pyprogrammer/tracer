@@ -23,19 +23,50 @@ function MockWindow(trust) {
    }
 }
 
+
+
 (function(){
+   var count = 0;
+   var current = 0;
+   function asyncLoadExecute(src) {
+      var request = new XMLHttpRequest();
+      var cnt = count++;
+      request.open('GET', src, true);
+      request.timeout = 1000;
+      request.onreadystatechange = function() {
+         if (request.readyState != XMLHttpRequest.DONE || request.status != 200) {
+            return;
+         }
+         var interval = setInterval(function(){
+            if (current == cnt) {
+               current++;
+               clearInterval(interval);
+               window.eval(generateWrapper(instrumentCode(request.responseText), !blacklisted(src)));
+            }
+         }, 10);
+      };
+      request.send();
+   }
+
    function addInstrumentation(node) {
       if (node.src) {
-         node.innerHTML = getText(node.src);
+         asyncLoadExecute(node.src);
          node.src = "";
+      } else {
+         var code = generateWrapper(instrumentCode(node.innerHTML, blacklisted(node.src)));
+         var cnt = count++;
+         var interval = setInterval(function(){
+            if (current == cnt) {
+               current++;
+               clearInterval(interval);
+               window.eval(code);
+            }
+         }, 10);
       }
-      node.innerHTML = generateWrapper(instrumentCode(node.innerHTML, blacklisted(node.src)));
    }
    // Mock Node methods
    var names = {
       "appendChild": function(node) {
-         console.log(node);
-         console.log("appendChild");
          if (!(this.getRootNode() === document))
             return old["appendChild"].call(this, node);
          // do a sweep through the child nodes that are scripts
@@ -47,8 +78,6 @@ function MockWindow(trust) {
          return old["appendChild"].call(this, node);
       },
       "insertBefore": function(node, before) {
-         console.log(node);
-         console.log("insertBefore");
          if (!(this.getRootNode() === document))
             return old["insertBefore"].call(this, node, before);
          // do a sweep through the child nodes that are scripts
@@ -60,10 +89,7 @@ function MockWindow(trust) {
          return old["insertBefore"].call(this, node, before);
       }
    };
-
-   var old = {
-
-   };
+   var old = {};
    for (var method in names) {
       old[method] = HTMLElement.prototype[method];
       HTMLElement.prototype[method] = function () {
@@ -72,6 +98,8 @@ function MockWindow(trust) {
       }
    }
 })();
+
+document.write = function(){};
 
 
 var untrustedParam = new MockWindow(false);

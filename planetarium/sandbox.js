@@ -179,6 +179,7 @@ function instrumentCode(code) {
 
 function sandbox(scriptTag) {
    var newScript = document.createElement('script');
+   if (!isScript(scriptTag)) return;
    if (!scriptTag.hasAttribute('sandbox')) {
       var newCode;
       var scriptURL = document.URL;
@@ -209,3 +210,6 @@ function getText(src) {
    return request.responseText;
 }
 
+function isScript(node) {
+   return node.type === "" || node.type.toLowerCase().indexOf("javascript") != -1;
+}

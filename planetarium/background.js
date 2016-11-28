@@ -18,24 +18,32 @@ var onSendHeaders = function(details) {
    return details
 };
 
+function isSafe(type) {
+   var safe = ["stylesheet", "image", "font"];
+   return safe.indexOf(type) != -1;
+}
+
 var onHeadersReceived = function(details) {
    var headers = details.responseHeaders;
-   if (details.type === "xmlhttprequest")
-      console.log({details: details, enabled: isEnabled(details.tabId)});
-   if (!isEnabled(details.tabId)) {
+   if (!isEnabled(details.tabId) && !isSafe(details.type)) {
+      console.log(details.type);
       headers.push({
          'name': 'Content-Security-Policy',
          'value': "script-src 'none' 'unsafe-eval'"
       });
-      headers.push({
-         'name': 'Access-Control-Allow-Origin',
-         'value': '*'
-      });
    } else {
-      headers.push({
-         'name': 'Access-Control-Allow-Origin',
-         'value': '*'
-      });
+      var push = true;
+      for (var i in headers) {
+         var h = headers[i];
+         if (h.name.toLowerCase() == 'access-control-allow-origin') {
+            push = false;
+         }
+      }
+      if (push)
+         headers.push({
+            'name': 'Access-Control-Allow-Origin',
+            'value': '*'
+         });
    }
    return { responseHeaders: headers };
 };
