@@ -63,7 +63,8 @@
          if (node.tagName === "SCRIPT") {
             addInstrumentation(node);
          } else {
-            Array.prototype.forEach.call(node.getElementsByTagName("script"), addInstrumentation);
+            if (node instanceof Element)
+               Array.prototype.forEach.call(node.getElementsByTagName("script"), addInstrumentation);
          }
          return old["insertBefore"].call(this, node, before);
       }
