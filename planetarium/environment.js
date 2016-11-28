@@ -20,7 +20,7 @@
             if (current == cnt) {
                current++;
                clearInterval(interval);
-               window.eval(generateWrapper(instrumentCode(request.responseText), !blacklisted(src)));
+               window.eval(generateWrapper(instrumentCode(request.responseText, true), !blacklisted(src)));
             }
          }, 10);
       };

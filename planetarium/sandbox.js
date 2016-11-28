@@ -35,7 +35,14 @@ MockFunction.prototype = Function.prototype;
 
 function generateWrapper(codeString, trusted) {
    // The context needs to be consistent with the function call below in order to mock the environment
-   return `(function(){
+   var accum = [];
+   if (codeString instanceof Array) {
+      accum = codeString[1];
+      codeString = codeString[0];
+   }
+   var decls = "";
+   if (accum.length > 0) decls = "var " + accum.join(", ") + ";";
+   return decls + `(function(){
    ${getEval.toString()}
    
    function f() {
@@ -131,64 +138,6 @@ function variableDeclaratorToAssignment(astNode) {
    };
 }
 
-var bestNameEver = "michaelsaysthisnameisrandomenough";
-function uninitializeVariable(vid) {
-
-   return  [
-      {
-         "type": "VariableDeclaration",
-         "declarations": [
-            {
-               "type": "VariableDeclarator",
-               "id": vid,
-               "init": {
-                  "type": "LogicalExpression",
-                  "operator": "||",
-                  "left": vid,
-                  "right": {
-                     "type": "Identifier",
-                     "name": "undefined"
-                  }
-               }
-            }
-         ],
-         "kind": "var"
-      },
-      {
-         "type": "ExpressionStatement",
-         "expression": {
-            "type": "AssignmentExpression",
-            "operator": "=",
-            "left": {
-               "type": "Identifier",
-               "name": bestNameEver
-            },
-            "right": vid
-         }
-      },
-      {
-         "type": "ExpressionStatement",
-         "expression": {
-            "type": "UnaryExpression",
-            "operator": "delete",
-            "argument": vid,
-            "prefix": true
-         }
-      },
-      {
-         "type": "ExpressionStatement",
-         "expression": {
-            "type": "AssignmentExpression",
-            "operator": "=",
-            "left": vid,
-            "right": {
-               "type": "Identifier",
-               "name": bestNameEver
-            }
-         }
-      }
-   ];
-}
 function saveVariables(ast) {
    var accum = [];
    (new ASTVisitor(
@@ -197,7 +146,7 @@ function saveVariables(ast) {
             if (astNode.init && astNode.init.type === "VariableDeclaration") {
                var body = [];
                for (var i = 0; i < astNode.init.declarations.length; i++) {
-                  accum.push(astNode.init.declarations[i].id);
+                  accum.push(astNode.init.declarations[i].id.name);
                   body.push(variableDeclaratorToAssignment(astNode.init.declarations[i]));
                }
                astNode.init = {
@@ -209,7 +158,7 @@ function saveVariables(ast) {
          } else if (astNode.type === "VariableDeclaration") {
             var body = [];
             for (var i = 0; i < astNode.declarations.length; i++) {
-               accum.push(astNode.declarations[i].id);
+               accum.push(astNode.declarations[i].id.name);
                body.push(variableDeclaratorToAssignment(astNode.declarations[i]));
             }
             return {
@@ -224,7 +173,7 @@ function saveVariables(ast) {
          } else if (astNode.type == "ForInStatement") {
             if (astNode.left.type == "VariableDeclaration") {
                // Assume we have an identifier
-               accum.push(astNode.left.declarations[0].id);
+               accum.push(astNode.left.declarations[0].id.name);
                astNode.left = astNode.left.declarations[0].id;
                return this.genericVisit(astNode);
             }
@@ -232,38 +181,20 @@ function saveVariables(ast) {
          return this.genericVisit(astNode);
       }
    )).visit(ast);
-   for (var i = accum.length-1; i >= 0; --i) {
-      var tmp = uninitializeVariable(accum[i]);
-      for (var j = tmp.length - 1; j >= 0; j--) {
-         ast.body.unshift(tmp[j]);
-      }
-   }
-   ast.body.unshift({
-      "type": "VariableDeclaration",
-      "declarations": [
-         {
-            "type": "VariableDeclarator",
-            "id": {
-               "type": "Identifier",
-               "name": bestNameEver
-            },
-            "init": {
-               "type": "Identifier",
-               "name": "undefined"
-            }
-         }
-      ],
-      "kind": "var"
-   });
+
+   return accum;
 }
 
-function instrumentCode(code) {
+function instrumentCode(code, lift=false) {
    if (typeof code !== "string") {
       return code; // Not actually a code obj
    }
    var tree = esprima.parse(code);
    instrumentEvals(tree);
-   saveVariables(tree);
+   if (lift) {
+      var accum = saveVariables(tree);
+      return [escodegen.generate(tree), accum];
+   }
    // Visit nodes in the AST and perform node replacement
    var result = escodegen.generate(tree);
    return result;
@@ -275,7 +206,7 @@ function replaceSandboxed(newScript, scriptTag) {
 }
 
 function instrumentScript(code, url) {
-   return generateWrapper(instrumentCode(code), blacklisted(url));
+   return generateWrapper(instrumentCode(code, true), blacklisted(url));
 }
 
 var prevRan = 0;
@@ -294,6 +225,8 @@ function sandboxInitial(scriptTag, ord) {
             if (request.readyState != XMLHttpRequest.DONE || request.status != 200) {
                return;
             }
+            console.log(scriptURL);
+            scriptTag.setAttribute("hasDefine", request.responseText.indexOf("define") != -1);
             newScript.innerHTML = instrumentScript(request.responseText, scriptURL);
             replaceSandboxed(newScript, scriptTag);
             prevRan += 1;
@@ -302,6 +235,9 @@ function sandboxInitial(scriptTag, ord) {
          scriptTag.removeAttribute('src');
          return;
       } else {
+         console.log("Inline JS");
+         // if (scriptTag.innerHTML.indexOf("define") != -1) console.log("DEFINE");
+         scriptTag.setAttribute("hasDefine", scriptTag.innerHTML.indexOf("define") != -1);
          newScript.innerHTML = instrumentScript(scriptTag.innerHTML, document.URL);
          replaceSandboxed(newScript, scriptTag);
       }

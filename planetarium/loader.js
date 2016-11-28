@@ -39,9 +39,18 @@
             createScript("sandbox.js");
             createScript("environment.js");
             // setup();
-            var scripts = Array.prototype.slice.apply(document.getElementsByTagName('script'));
-            for (i = 0; i < scripts.length; ++i) {
-               sandboxInitial(scripts[i], i);
+            console.log("Starting to reload code");
+            var scripts = document.getElementsByTagName("script");
+            var copy = [];
+            var deferred = [];
+            for (var i = 0; i < scripts.length; i++) {
+               if (scripts[i].hasAttribute("defer")) deferred.push(scripts[i]);
+               else copy.push(scripts[i]);
+            }
+            // var scripts = Array.prototype.slice.apply(document.getElementsByTagName('script'));
+            var total = copy.concat(deferred);
+            for (i = 0; i < total.length; ++i) {
+               sandboxInitial(total[i], i);
             }
             chrome.runtime.onMessage.removeListener(listen);
          }
