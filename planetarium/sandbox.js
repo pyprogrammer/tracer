@@ -24,6 +24,15 @@ function getEval(context) {
    return evalInContext;
 }
 
+function MockFunction() {
+   var functionHeader = "(function()";
+   var args = Array.prototype.slice.call(arguments);
+   args[args.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + args[args.length-1] + "}))();");
+   args.unshift(null);
+   return new (Function.prototype.bind.apply(Function, args));
+}
+MockFunction.prototype = Function.prototype;
+
 function generateWrapper(codeString, trusted) {
    // The context needs to be consistent with the function call below in order to mock the environment
    return `(function(){
@@ -51,13 +60,10 @@ function evalInstrumentationAST(name, arglist) {
    var evalHandle = { // eval === <handle to real eval>
       "type": "BinaryExpression",
       "operator": "===",
-      "left": {
-         "type": "Identifier",
-         "name": name
-      },
+      "left": name,
       "right": {
          "type": "Identifier",
-         "name": "eval"
+         "name": "__global_eval"
       }
    };
 
@@ -84,10 +90,7 @@ function evalInstrumentationAST(name, arglist) {
 
    var originalEvalCall = {
       "type": "CallExpression",
-      "callee": {
-         "type": "Identifier",
-         "name": name
-      },
+      "callee": name,
       "arguments": arglist.slice()
    };
 
@@ -105,8 +108,9 @@ function instrumentEvals(ast) {
    var visitor = new ASTVisitor(
       function(astNode) {
          if (astNode.type === 'CallExpression' && astNode.arguments.length > 0) {
-            if (astNode.callee.type === 'Identifier' && !(astNode.callee.name === "eval")) {
-               return evalInstrumentationAST(astNode.callee.name, astNode.arguments);
+            if (astNode.callee.type != 'Identifier' || !(astNode.callee.name === "eval")) {
+               // Calling a function without using eval(...)
+               return evalInstrumentationAST(astNode.callee, astNode.arguments);
             }
          }
          return this.genericVisit(astNode);
@@ -231,3 +235,6 @@ function getText(src) {
 function isScript(node) {
    return node.type === "" || node.type.toLowerCase().indexOf("javascript") != -1;
 }
+
+window.Function = MockFunction;
+window.__global_eval = eval;
