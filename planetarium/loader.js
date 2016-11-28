@@ -19,21 +19,11 @@
       var s2 = document.createElement("script");
       s2.setAttribute("sandbox", "0");
       s2.innerHTML = newCode;
+		if (firstChild == null) {
+         firstChild = elem.firstChild;
+      }
       elem.insertBefore(s2, firstChild);
       elem.removeChild(s2);
-
-   }
-
-   function pageInject(name) {
-      var scriptURL = chrome.extension.getURL(name);
-      var request = new XMLHttpRequest();
-      request.open('GET', scriptURL, false);
-      request.send();
-      var newCode = request.responseText;
-      var s2 = document.createElement("script");
-      s2.setAttribute("sandbox", "0");
-      s2.innerHTML = newCode;
-      elem.insertBefore(s2, firstChild);
    }
 
    document.addEventListener("DOMContentLoaded", function (event) {
@@ -48,11 +38,11 @@
             createScript("blacklist.js");
             createScript("sandbox.js");
             createScript("tracer.js");
-            pageInject("environment.js");
+            createScript("environment.js");
             // setup();
             var scripts = Array.prototype.slice.apply(document.getElementsByTagName('script'));
             for (i = 0; i < scripts.length; ++i) {
-               sandbox(scripts[i]);
+               sandboxInitial(scripts[i], i);
             }
             chrome.runtime.onMessage.removeListener(listen);
          }

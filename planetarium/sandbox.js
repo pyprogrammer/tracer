@@ -177,29 +177,42 @@ function instrumentCode(code) {
    return result;
 }
 
-function sandbox(scriptTag) {
+var prevRan = 0;
+function sandboxInitial(scriptTag, ord) {
+   if (prevRan != ord) {
+      setTimeout(function() { sandboxInitial(scriptTag, ord) }, 10);
+      return;
+   }
    var newScript = document.createElement('script');
    if (!isScript(scriptTag)) return;
    if (!scriptTag.hasAttribute('sandbox')) {
-      var newCode;
       var scriptURL = document.URL;
       if (scriptTag.hasAttribute('src')) {
          var scriptURL = scriptTag.getAttribute('src');
          var request = new XMLHttpRequest();
-         request.open('GET', scriptURL, false);
+         request.open('GET', scriptURL, true);
+         request.onreadystatechange = function() {
+            if (request.readyState != XMLHttpRequest.DONE || request.status != 200) {
+               return;
+            }
+            newScript.innerHTML = generateWrapper(instrumentCode(request.responseText), blacklisted(scriptURL));
+            scriptTag.parentNode.insertBefore(newScript, scriptTag);
+            scriptTag.parentNode.removeChild(scriptTag);
+            prevRan += 1;
+         };
          request.send();
          scriptTag.removeAttribute('src');
-         newCode = request.responseText;
       } else {
-         newCode = scriptTag.innerHTML;
+         newScript.innerHTML = generateWrapper(instrumentCode(scriptTag.innerHTML), blacklisted(scriptURL));
+         scriptTag.parentNode.insertBefore(newScript, scriptTag);
+         scriptTag.parentNode.removeChild(scriptTag);
+         prevRan += 1;
       }
-      newScript.innerHTML = generateWrapper(instrumentCode(newCode), blacklisted(scriptURL));
-      scriptTag.parentNode.insertBefore(newScript, scriptTag);
-      scriptTag.parentNode.removeChild(scriptTag);
    } else {
       var newScript = scriptTag.cloneNode();
       scriptTag.parentNode.insertBefore(newScript, scriptTag);
       scriptTag.parentNode.removeChild(scriptTag);
+      prevRan += 1;
    }
 }
 

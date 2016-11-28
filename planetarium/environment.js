@@ -102,5 +102,6 @@ function MockWindow(trust) {
 document.write = function(){};
 
 
-var untrustedParam = new MockWindow(false);
-var trustedParam = new MockWindow(true);
+untrustedParam = new MockWindow(false);
+trustedParam = new MockWindow(true);
+
