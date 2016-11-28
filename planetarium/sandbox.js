@@ -146,7 +146,6 @@ function saveVariables(ast) {
    return (new ASTVisitor(
       function (astNode) {
          if (astNode.type === "VariableDeclaration") {
-            console.log(astNode);
             var body = [];
             for (var i = 0; i < astNode.declarations.length; i++) {
                body.push(variableDeclaratorToAssignment(astNode.declarations[i]));
@@ -201,5 +200,12 @@ function sandbox(scriptTag) {
       scriptTag.parentNode.insertBefore(newScript, scriptTag);
       scriptTag.parentNode.removeChild(scriptTag);
    }
+}
+
+function getText(src) {
+   var request = new XMLHttpRequest();
+   request.open('GET', src, false);
+   request.send();
+   return request.responseText;
 }
 

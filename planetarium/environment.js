@@ -24,24 +24,52 @@ function MockWindow(trust) {
 }
 
 (function(){
+   function addInstrumentation(node) {
+      if (node.src) {
+         node.innerHTML = getText(node.src);
+         node.src = "";
+      }
+      node.innerHTML = generateWrapper(instrumentCode(node.innerHTML, blacklisted(node.src)));
+   }
    // Mock Node methods
-   var names = [
-      "appendChild",
-      "insertBefore",
-      "removeChild",
-      "replaceChild"
-   ];
-   for (var index in names) {
-      (function(name) {
-         var old = Node.prototype[name];
-         function old(){};
-         Node.prototype[name] = function() {
-            console.log(name);
-            console.log(arguments);
-            var that = this;
-            return old.apply(that, arguments);
-         };
-      })(names[index]); // Prevent scoping problems
+   var names = {
+      "appendChild": function(node) {
+         console.log(node);
+         console.log("appendChild");
+         if (!(this.getRootNode() === document))
+            return old["appendChild"].call(this, node);
+         // do a sweep through the child nodes that are scripts
+         if (node.tagName === "SCRIPT") {
+            addInstrumentation(node);
+         } else {
+            Array.prototype.forEach.call(node.getElementsByTagName("script"), addInstrumentation);
+         }
+         return old["appendChild"].call(this, node);
+      },
+      "insertBefore": function(node, before) {
+         console.log(node);
+         console.log("insertBefore");
+         if (!(this.getRootNode() === document))
+            return old["insertBefore"].call(this, node, before);
+         // do a sweep through the child nodes that are scripts
+         if (node.tagName === "SCRIPT") {
+            addInstrumentation(node);
+         } else {
+            Array.prototype.forEach.call(node.getElementsByTagName("script"), addInstrumentation);
+         }
+         return old["insertBefore"].call(this, node, before);
+      }
+   };
+
+   var old = {
+
+   };
+   for (var method in names) {
+      old[method] = HTMLElement.prototype[method];
+      HTMLElement.prototype[method] = function () {
+         var that = this;
+         return names[method].apply(that, arguments);
+      }
    }
 })();
 

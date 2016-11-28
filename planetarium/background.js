@@ -12,14 +12,29 @@ var isEnabled = function(tabID) {
    return managedPorts[tabID].enable;
 };
 
+var onSendHeaders = function(details) {
+   if (details.type === "xmlhttprequest")
+      console.log({send: true, details: details});
+   return details
+};
+
 var onHeadersReceived = function(details) {
    var headers = details.responseHeaders;
-   console.log(details);
+   if (details.type === "xmlhttprequest")
+      console.log({details: details, enabled: isEnabled(details.tabId)});
    if (!isEnabled(details.tabId)) {
-      console.log("enabled: " + details.tabId);
       headers.push({
          'name': 'Content-Security-Policy',
          'value': "script-src 'none' 'unsafe-eval'"
+      });
+      headers.push({
+         'name': 'Access-Control-Allow-Origin',
+         'value': '*'
+      });
+   } else {
+      headers.push({
+         'name': 'Access-Control-Allow-Origin',
+         'value': '*'
       });
    }
    return { responseHeaders: headers };
@@ -34,6 +49,17 @@ chrome.webRequest.onHeadersReceived.addListener(
       ]
    },
    ['blocking', 'responseHeaders']
+);
+
+chrome.webRequest.onSendHeaders.addListener(
+   onSendHeaders,
+   {
+      'urls': [
+         "http://*/*",
+         "https://*/*"
+      ]
+   },
+   []
 );
 
 chrome.runtime.onConnect.addListener(function(port) {
