@@ -53,7 +53,7 @@ function MockWindow(trust) {
          asyncLoadExecute(node.src);
          node.src = "";
       } else {
-         var code = generateWrapper(instrumentCode(node.innerHTML, blacklisted(node.src)));
+         var code = instrumentScript(node.innerHTML, node.src);
          var cnt = count++;
          var interval = setInterval(function(){
             if (current == cnt) {

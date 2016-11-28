@@ -177,16 +177,23 @@ function instrumentCode(code) {
    return result;
 }
 
+function replaceSandboxed(newScript, scriptTag) {
+   scriptTag.parentNode.insertBefore(newScript, scriptTag);
+   scriptTag.parentNode.removeChild(scriptTag);
+}
+
+function instrumentScript(code, url) {
+   return generateWrapper(instrumentCode(code), blacklisted(url));
+}
+
 var prevRan = 0;
 function sandboxInitial(scriptTag, ord) {
    if (prevRan != ord) {
       setTimeout(function() { sandboxInitial(scriptTag, ord) }, 10);
       return;
    }
-   var newScript = document.createElement('script');
-   if (!isScript(scriptTag)) return;
-   if (!scriptTag.hasAttribute('sandbox')) {
-      var scriptURL = document.URL;
+   if (isScript(scriptTag) && !scriptTag.hasAttribute('sandbox')) {
+      var newScript = document.createElement('script');
       if (scriptTag.hasAttribute('src')) {
          var scriptURL = scriptTag.getAttribute('src');
          var request = new XMLHttpRequest();
@@ -195,25 +202,22 @@ function sandboxInitial(scriptTag, ord) {
             if (request.readyState != XMLHttpRequest.DONE || request.status != 200) {
                return;
             }
-            newScript.innerHTML = generateWrapper(instrumentCode(request.responseText), blacklisted(scriptURL));
-            scriptTag.parentNode.insertBefore(newScript, scriptTag);
-            scriptTag.parentNode.removeChild(scriptTag);
+            newScript.innerHTML = instrumentScript(request.responseText, scriptURL);
+            replaceSandboxed(newScript, scriptTag);
             prevRan += 1;
          };
          request.send();
          scriptTag.removeAttribute('src');
+         return;
       } else {
-         newScript.innerHTML = generateWrapper(instrumentCode(scriptTag.innerHTML), blacklisted(scriptURL));
-         scriptTag.parentNode.insertBefore(newScript, scriptTag);
-         scriptTag.parentNode.removeChild(scriptTag);
-         prevRan += 1;
+         newScript.innerHTML = instrumentScript(scriptTag.innerHTML, document.URL);
+         replaceSandboxed(newScript, scriptTag);
       }
    } else {
       var newScript = scriptTag.cloneNode();
-      scriptTag.parentNode.insertBefore(newScript, scriptTag);
-      scriptTag.parentNode.removeChild(scriptTag);
-      prevRan += 1;
+      replaceSandboxed(newScript, scriptTag);
    }
+   prevRan += 1;
 }
 
 function getText(src) {
