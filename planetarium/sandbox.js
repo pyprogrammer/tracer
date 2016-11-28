@@ -130,18 +130,17 @@ function variableDeclaratorToAssignment(astNode) {
       }
    };
 }
+
+var bestNameEver = "michaelsaysthisnameisrandomenough";
 function uninitializeVariable(vid) {
-   var bestNameEver = "asdfljaansfdklnjllijadsfkljasfhiluawef";
+
    return  [
       {
          "type": "VariableDeclaration",
          "declarations": [
             {
                "type": "VariableDeclarator",
-               "id": {
-                  "type": "Identifier",
-                  "name": bestNameEver
-               },
+               "id": vid,
                "init": {
                   "type": "LogicalExpression",
                   "operator": "||",
@@ -156,17 +155,39 @@ function uninitializeVariable(vid) {
          "kind": "var"
       },
       {
-      "type": "ExpressionStatement",
-      "expression": {
-         "type": "AssignmentExpression",
-         "operator": "=",
-         "left": vid,
-         "right": {
-            "type": "Identifier",
-            "name": bestNameEver
+         "type": "ExpressionStatement",
+         "expression": {
+            "type": "AssignmentExpression",
+            "operator": "=",
+            "left": {
+               "type": "Identifier",
+               "name": bestNameEver
+            },
+            "right": vid
+         }
+      },
+      {
+         "type": "ExpressionStatement",
+         "expression": {
+            "type": "UnaryExpression",
+            "operator": "delete",
+            "argument": vid,
+            "prefix": true
+         }
+      },
+      {
+         "type": "ExpressionStatement",
+         "expression": {
+            "type": "AssignmentExpression",
+            "operator": "=",
+            "left": vid,
+            "right": {
+               "type": "Identifier",
+               "name": bestNameEver
+            }
          }
       }
-   }];
+   ];
 }
 function saveVariables(ast) {
    var accum = [];
@@ -213,10 +234,27 @@ function saveVariables(ast) {
    )).visit(ast);
    for (var i = accum.length-1; i >= 0; --i) {
       var tmp = uninitializeVariable(accum[i]);
-      for (var j = 0; j < tmp.length; j++) {
+      for (var j = tmp.length - 1; j >= 0; j--) {
          ast.body.unshift(tmp[j]);
       }
    }
+   ast.body.unshift({
+      "type": "VariableDeclaration",
+      "declarations": [
+         {
+            "type": "VariableDeclarator",
+            "id": {
+               "type": "Identifier",
+               "name": bestNameEver
+            },
+            "init": {
+               "type": "Identifier",
+               "name": "undefined"
+            }
+         }
+      ],
+      "kind": "var"
+   });
 }
 
 function instrumentCode(code) {
