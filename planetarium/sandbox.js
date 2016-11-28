@@ -26,7 +26,7 @@ function getEval(context) {
 
 function generateWrapper(codeString, trusted) {
    // The context needs to be consistent with the function call below in order to mock the environment
-   return `(function(window){
+   return `(function(){
    ${getEval.toString()}
    
    function f() {
@@ -39,10 +39,10 @@ function generateWrapper(codeString, trusted) {
    f.prototype = Function.prototype;
    
    var context = { window: window, document: document, Function: f};
-   (function(window, document, __reval, Function) {
+   (function(document, __reval, Function) {
       ${codeString}
-   }).call(window, window, document, getEval(context), f);
-})(${trusted ? "trustedParam" : "untrustedParam"});`;
+   }).call(window, document, getEval(context), f);
+})();`;
 }
 
 function evalInstrumentationAST(name, arglist) {
@@ -115,22 +115,6 @@ function instrumentEvals(ast) {
    visitor.visit(ast);
 }
 
-// if Var declarations are made at the top level, they need to become global assigments instead
-/*
- {
- "type": "VariableDeclarator",
- "id": {
- "type": "Identifier",
- "name": "x"
- },
- "init": {
- "type": "Literal",
- "value": 3,
- "raw": "3"
- }
- },
- */
-
 function variableDeclaratorToAssignment(astNode) {
    return  {
          "type": "AssignmentExpression",
@@ -145,7 +129,19 @@ function variableDeclaratorToAssignment(astNode) {
 function saveVariables(ast) {
    return (new ASTVisitor(
       function (astNode) {
-         if (astNode.type === "VariableDeclaration") {
+         if (astNode.type === "ForStatement") {
+            if (astNode.init && astNode.init.type === "VariableDeclaration") {
+               var body = [];
+               for (var i = 0; i < astNode.init.declarations.length; i++) {
+                  body.push(variableDeclaratorToAssignment(astNode.init.declarations[i]));
+               }
+               astNode.init = {
+                  "type": "SequenceExpression",
+                  "expressions": body
+               };
+               return this.genericVisit(astNode);
+            }
+         } else if (astNode.type === "VariableDeclaration") {
             var body = [];
             for (var i = 0; i < astNode.declarations.length; i++) {
                body.push(variableDeclaratorToAssignment(astNode.declarations[i]));
@@ -159,6 +155,11 @@ function saveVariables(ast) {
             };
          } else if (astNode.type == "FunctionDeclaration" || astNode.type == "FunctionExpression") {
             return astNode; // don't visit children
+         } else if (astNode.type == "ForInStatement") {
+            if (astNode.left.type == "VariableDeclaration") {
+               astNode.left = astNode.left.declarations[0].id;
+               return this.genericVisit(astNode);
+            }
          }
          return this.genericVisit(astNode);
       }
