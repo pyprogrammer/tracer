@@ -39,7 +39,6 @@ function MockWindow(trust) {
             console.log(name);
             console.log(arguments);
             var that = this;
-            debugger;
             return old.apply(that, arguments);
          };
       })(names[index]); // Prevent scoping problems
