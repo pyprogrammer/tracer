@@ -135,3 +135,14 @@ function purgeUntrusted() {
       }
    }
 }
+
+MockFunction.__functionHandle = Function;
+function MockFunction() {
+   var functionHeader = "(function()";
+   var args = Array.prototype.slice.call(arguments);
+   args[args.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + args[args.length-1] + "}))();");
+   args.unshift(null);
+   return new (MockFunction.__functionHandle.prototype.bind.apply(MockFunction.__functionHandle, args));
+}
+MockFunction.prototype = MockFunction.__functionHandle.prototype;
+window.Function = MockFunction;

@@ -26,15 +26,6 @@ function getEval(context) {
    return evalInContext;
 }
 
-function MockFunction() {
-   var functionHeader = "(function()";
-   var args = Array.prototype.slice.call(arguments);
-   args[args.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + args[args.length-1] + "}))();");
-   args.unshift(null);
-   return new (Function.prototype.bind.apply(Function, args));
-}
-MockFunction.prototype = Function.prototype;
-
 
 function generateWrapper(codeString, trusted, name) {
    // The context needs to be consistent with the function call below in order to mock the environment
@@ -50,19 +41,10 @@ function generateWrapper(codeString, trusted, name) {
    return register + decls + `(function(){
    ${getEval.toString()}
    
-   function f() {
-      var functionHeader = "(function()";
-      var args = Array.prototype.slice.call(arguments);
-      args[args.length-1] = "return " + instrumentCode("(" + functionHeader + "{" + args[args.length-1] + "}))();");
-      args.unshift(null);
-      return new (Function.prototype.bind.apply(Function, args));
-   }
-   f.prototype = Function.prototype;
-   
-   var context = { window: window, document: document, Function: f};
-   (function ${identifier} (document, __reval, Function) {
+   var context = { window: window, document: document};
+   (function ${identifier} (document, __reval) {
       ${codeString}
-   }).call(window, document, getEval(context), f);
+   }).call(window, document, getEval(context));
 })();`;
 }
 
@@ -264,5 +246,5 @@ function isScript(node) {
    return node.type === "" || node.type.toLowerCase().indexOf("javascript") != -1;
 }
 
-window.Function = MockFunction;
+
 window.__global_eval = eval;
