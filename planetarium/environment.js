@@ -29,10 +29,7 @@
 
    function instrumentInline(codeobj) {
       var stack = lookupMetadata(codeobj.getAttribute("tracer-meta"));
-      var isBlack = false;
-      for (var i = 0; i < stack.length; i++) {
-         isBlack |= blacklisted(stack[i]);
-      }
+      var isBlack = isBlacklisted(stack);
       return generateWrapper(instrumentCode(codeobj.innerHTML, true), isBlack, "inline");
    }
 
@@ -110,6 +107,10 @@ document.write = function(){};
 
 function lookupMetadata(metaId) {
    var stack = metadata[metaId];
+   if (stack === undefined) {
+      console.log("Warning: Metadata not defined! Tracking unsupported?");
+      return null;
+   }
    var data = [];
    for (var i = 0; i < stack.length; i++){
       var elem = stack[i];
@@ -120,17 +121,25 @@ function lookupMetadata(metaId) {
    return data;
 }
 
+function isBlacklisted(metadata) {
+   if (metadata === null || metadata === undefined) {
+      console.log("Warning: Null or undefined metadata!");
+      return false;
+   }
+   var isListed = false;
+   for (var j = 0; j < metadata.length; j++) {
+      isListed |= blacklisted(metadata[j]);
+   }
+   return isListed;
+}
+
 function purgeUntrusted() {
    var instrumented = Array.prototype.slice.apply(document.getElementsByClassName("__instrumented"));
    for (var i = 0; i < instrumented.length; i++) {
       if (instrumented[i].style.display == 'none') continue;
-      var isListed = false;
       var id = parseInt(instrumented[i].getAttribute("tracer-meta"));
       var meta = lookupMetadata(id);
-      for (var j = 0; j < meta.length; j++) {
-         isListed |= blacklisted(meta[j]);
-      }
-      if (isListed) {
+      if (isBlacklisted(meta)) {
          instrumented[i].style.display = 'none';
       }
    }
