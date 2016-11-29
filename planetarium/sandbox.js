@@ -1,4 +1,10 @@
-console.log("SANDBOX.js");
+var LOG_PREFIX = "[PLANETARIUM]"
+
+function logDebug(str) {
+   console.log(LOG_PREFIX + " " + str);
+}
+
+logDebug("Load sandbox.js");
 
 Error.stackTraceLimit = Infinity;
 
@@ -212,7 +218,7 @@ function sandboxInitial(scriptTag, ord) {
             if (request.readyState != XMLHttpRequest.DONE || request.status != 200) {
                return;
             }
-            console.log(scriptURL);
+            logDebug("Loading: " + scriptURL);
             scriptTag.setAttribute("hasDefine", request.responseText.indexOf("define") != -1);
             newScript.innerHTML = instrumentScript(request.responseText, scriptURL);
             replaceSandboxed(newScript, scriptTag);
@@ -222,8 +228,8 @@ function sandboxInitial(scriptTag, ord) {
          scriptTag.removeAttribute('src');
          return;
       } else {
-         console.log("Inline JS");
-         // if (scriptTag.innerHTML.indexOf("define") != -1) console.log("DEFINE");
+         logDebug("Inline JS");
+         // if (scriptTag.innerHTML.indexOf("define") != -1) logDebug("DEFINE");
          scriptTag.setAttribute("hasDefine", scriptTag.innerHTML.indexOf("define") != -1);
          newScript.innerHTML = instrumentScript(scriptTag.innerHTML, document.URL);
          replaceSandboxed(newScript, scriptTag);

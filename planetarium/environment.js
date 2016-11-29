@@ -1,9 +1,3 @@
-/**
- * Created by nzhang-dev on 11/25/16.
- */
-
-
-
 (function(){
    var count = 0;
    var current = 0;
@@ -108,7 +102,7 @@ document.write = function(){};
 function lookupMetadata(metaId) {
    var stack = metadata[metaId];
    if (stack === undefined) {
-      console.log("Warning: Metadata not defined! Tracking unsupported?");
+      logDebug("Warning: Metadata not defined! Tracking unsupported?");
       return null;
    }
    var data = [];
@@ -123,7 +117,7 @@ function lookupMetadata(metaId) {
 
 function isBlacklisted(metadata) {
    if (metadata === null || metadata === undefined) {
-      console.log("Warning: Null or undefined metadata!");
+      logDebug("Warning: Null or undefined metadata!");
       return false;
    }
    var isListed = false;

@@ -39,7 +39,7 @@
             createScript("sandbox.js");
             createScript("environment.js");
             // setup();
-            console.log("Starting to reload code");
+            logDebug("Starting to reload code");
             var scripts = document.getElementsByTagName("script");
             var copy = [];
             var deferred = [];
