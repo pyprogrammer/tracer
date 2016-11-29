@@ -1,5 +1,7 @@
 console.log("SANDBOX.js");
 
+Error.stackTraceLimit = Infinity;
+
 function ASTVisitor(visitor /* function */) {
    this.visit = visitor.bind(this);
    this.genericVisit = (function(astNode) {
@@ -33,16 +35,19 @@ function MockFunction() {
 }
 MockFunction.prototype = Function.prototype;
 
-function generateWrapper(codeString, trusted) {
+
+function generateWrapper(codeString, trusted, name) {
    // The context needs to be consistent with the function call below in order to mock the environment
    var accum = [];
    if (codeString instanceof Array) {
       accum = codeString[1];
       codeString = codeString[0];
    }
+   var identifier = "wrapper__" + Math.random().toString(36).substr(2);
    var decls = "";
    if (accum.length > 0) decls = "var " + accum.join(", ") + ";";
-   return decls + `(function(){
+   var register = `anonymous["${identifier}"] = "${name}";\n`;
+   return register + decls + `(function(){
    ${getEval.toString()}
    
    function f() {
@@ -55,7 +60,7 @@ function generateWrapper(codeString, trusted) {
    f.prototype = Function.prototype;
    
    var context = { window: window, document: document, Function: f};
-   (function(document, __reval, Function) {
+   (function ${identifier} (document, __reval, Function) {
       ${codeString}
    }).call(window, document, getEval(context), f);
 })();`;
@@ -206,7 +211,7 @@ function replaceSandboxed(newScript, scriptTag) {
 }
 
 function instrumentScript(code, url) {
-   return generateWrapper(instrumentCode(code, true), blacklisted(url));
+   return generateWrapper(instrumentCode(code, true), blacklisted(url), url);
 }
 
 var prevRan = 0;
