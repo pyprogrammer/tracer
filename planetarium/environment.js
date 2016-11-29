@@ -81,8 +81,8 @@
 
    var old = {};
    for (var method in names) {
-      old[method] = HTMLElement.prototype[method];
-      HTMLElement.prototype[method] = function () {
+      old[method] = Node.prototype[method];
+      Node.prototype[method] = function () {
          var that = this;
          var res = names[method].apply(that, arguments);
          purgeUntrusted();
@@ -92,23 +92,34 @@
 
    (function(){
       var i = 0;
-      var createElement = document.createElement;
-      document.createElement = function(tagName) {
-         var element = createElement.call(document, tagName);
+      var createElement = Document.prototype.createElement;
+      Document.prototype.createElement = function(tagName) {
+         var element = createElement.call(this, tagName);
          metadata[ctr] = ErrorStackParser.parse(new Error('boom'));
          element.setAttribute("tracer-meta", ctr++);
-         element.classList.add("__instrumented");
+         instrumented.push(element);
          return element;
-      }
+      };
+
+      var createFrag = Document.prototype.createDocumentFragment;
+      Document.prototype.createDocumentFragment = function() {
+         console.log("FRAG");
+         var frag = createFrag.call(this);
+         metadata[ctr] = ErrorStackParser.parse(new Error('boom'));
+         frag["tracer-meta"] = ctr++;
+         fragments.push(frag);
+         return frag;
+      };
    })();
 })();
 var metadata = {};
 var ctr = 0;
-
+var fragments = [];
 var anonymous = {};
-document.write = function(){};
+var instrumented = [];
 
 function lookupMetadata(metaId) {
+   // if (metaId == null) return [];
    var stack = metadata[metaId];
    var data = [];
    for (var i = 0; i < stack.length; i++){
@@ -121,7 +132,6 @@ function lookupMetadata(metaId) {
 }
 
 function purgeUntrusted() {
-   var instrumented = Array.prototype.slice.apply(document.getElementsByClassName("__instrumented"));
    for (var i = 0; i < instrumented.length; i++) {
       if (instrumented[i].style.display == 'none') continue;
       var isListed = false;
