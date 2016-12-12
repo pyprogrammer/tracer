@@ -102,6 +102,19 @@ var TRACER_ATTR = 'tracer-meta';
          fragments.push(frag);
          return frag;
       }
+      docWrite = [Document.prototype.write, Document.prototype.writeln];
+      Document.prototype.write = function(args) {
+         for (var i = arguments.length-1; i >= 0; i--) {
+            var doc = (new DOMParser()).parseFromString(arguments[i], "text/html");
+            document.currentScript.nextSibling.insertBefore(doc.body);
+         }
+      }
+      Document.prototype.writeln = function(args) {
+         for (var i = arguments.length-1; i >= 0; i--) {
+            var doc = (new DOMParser()).parseFromString(arguments[i] + "\n", "text/html");
+            document.currentScript.nextSibling.insertBefore(doc.body);
+         }
+      }
       docReadyStateGetter = Document.prototype.__lookupGetter__("readyState");
       Document.prototype.__defineGetter__("readyState", function() {
          return "loading";
@@ -126,6 +139,7 @@ var TRACER_ATTR = 'tracer-meta';
       }
    })();
 })();
+var docWrite = [];
 var docAddEventListener;
 var docReadyStateGetter;
 var docListeners = [];
@@ -136,7 +150,6 @@ var ctr = 0;
 var instrumented = [];
 var fragments = [];
 var anonymous = {};
-document.write = function(){};
 
 function lookupMetadata(metaId) {
    var stack = metadata[metaId];
@@ -179,6 +192,8 @@ function purgeUntrusted() {
 
 function fixDOMContentLoaded() {
    logDebug("Repatching listener functionality.");
+   Document.prototype.write = docWrite[0];
+   Document.prototype.writeln = docWrite[1];
    Document.prototype.__defineGetter__("readyState", docReadyStateGetter);
    Document.prototype.addEventListener = docAddEventListener;
    Window.prototype.addEventListener = winAddEventListener;
