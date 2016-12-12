@@ -199,6 +199,7 @@ function fixDOMContentLoaded() {
    Window.prototype.addEventListener = winAddEventListener;
    var dclEvent = new Event("DOMContentLoaded", {"bubbles": true, "cancelable": true});
    for (var i = 0; i < docListeners.length; i++) {
+      // TODO: Take into account capture and fix ordering
       docAddEventListener.apply(document, docListeners[i]);
       if (typeof docListeners[i][1] === "object") {
          docListeners[i][1].handleEvent(dclEvent);
@@ -207,6 +208,7 @@ function fixDOMContentLoaded() {
       }
    }
    for (var i = 0; i < winListeners.length; i++) {
+      // TODO: Take into account capture and fix ordering
       winAddEventListener.apply(window, winListeners[i]);
       if (typeof winListeners[i][1] === "object") {
          winListeners[i][1].handleEvent(dclEvent);
