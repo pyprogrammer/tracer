@@ -182,11 +182,22 @@ function fixDOMContentLoaded() {
    Document.prototype.__defineGetter__("readyState", docReadyStateGetter);
    Document.prototype.addEventListener = docAddEventListener;
    Window.prototype.addEventListener = winAddEventListener;
+   var dclEvent = new Event("DOMContentLoaded", {"bubbles": true, "cancelable": true});
    for (var i = 0; i < docListeners.length; i++) {
       docAddEventListener.apply(document, docListeners[i]);
+      if (typeof docListeners[i][1] === "object") {
+         docListeners[i][1].handleEvent(dclEvent);
+      } else {
+         docListeners[i][1](dclEvent);
+      }
    }
    for (var i = 0; i < winListeners.length; i++) {
       winAddEventListener.apply(window, winListeners[i]);
+      if (typeof winListeners[i][1] === "object") {
+         winListeners[i][1].handleEvent(dclEvent);
+      } else {
+         winListeners[i][1](dclEvent);
+      }
    }
 }
 
