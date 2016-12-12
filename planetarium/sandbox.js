@@ -241,6 +241,16 @@ function sandboxInitial(scriptTag, ord) {
    prevRan += 1;
 }
 
+function fixListeners(ord) {
+   if (prevRan != ord) {
+      setTimeout(function() { fixListeners(ord) }, 10);
+      return;
+   }
+   var patcher = document.createElement("script");
+   patcher.innerHTML = "fixDOMContentLoaded();";
+   document.documentElement.appendChild(patcher);
+}
+
 function getText(src) {
    var request = new XMLHttpRequest();
    request.open('GET', src, false);

@@ -52,6 +52,7 @@
             for (i = 0; i < total.length; ++i) {
                sandboxInitial(total[i], i);
             }
+            fixListeners(total.length);
             chrome.runtime.onMessage.removeListener(listen);
          }
       });

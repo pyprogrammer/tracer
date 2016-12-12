@@ -103,6 +103,28 @@ var domContentLoadedListeners = [];
          fragments.push(frag);
          return frag;
       }
+      docReadyStateGetter = Document.prototype.__lookupGetter__("readyState");
+      Document.prototype.__defineGetter__("readyState", function() {
+         return "loading";
+      });
+      docAddEventListener = Document.prototype.addEventListener;
+      Document.prototype.addEventListener = function(type, listener) {
+         if (type === "DOMContentLoaded") {
+            logDebug("Caught early ready listener in document.");
+            docListeners.push(arguments);
+         } else {
+            docAddEventListener.apply(this, arguments);
+         }
+      }
+      winAddEventListener = Window.prototype.addEventListener;
+      Window.prototype.addEventListener = function(type, listener) {
+         if (type === "DOMContentLoaded") {
+            logDebug("Caught early ready listener in window.");
+            winListeners.push(arguments);
+         } else {
+            winAddEventListener.apply(this, arguments);
+         }
+      }
    })();
 
    // Document listeners
@@ -123,6 +145,11 @@ var domContentLoadedListeners = [];
       });
    })();
 })();
+var docAddEventListener;
+var docReadyStateGetter;
+var docListeners = [];
+var winAddEventListener;
+var winListeners = [];
 var metadata = {};
 var ctr = 0;
 var instrumented = [];
@@ -166,6 +193,19 @@ function purgeUntrusted() {
       if (isBlacklisted(meta)) {
          instrumented[i].style.display = 'none';
       }
+   }
+}
+
+function fixDOMContentLoaded() {
+   logDebug("Repatching listener functionality.");
+   Document.prototype.__defineGetter__("readyState", docReadyStateGetter);
+   Document.prototype.addEventListener = docAddEventListener;
+   Window.prototype.addEventListener = winAddEventListener;
+   for (var i = 0; i < docListeners.length; i++) {
+      docAddEventListener.apply(document, docListeners[i]);
+   }
+   for (var i = 0; i < winListeners.length; i++) {
+      winAddEventListener.apply(window, winListeners[i]);
    }
 }
 
