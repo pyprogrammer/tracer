@@ -1,4 +1,5 @@
 var TRACER_ATTR = 'tracer-meta';
+var domContentLoadedListeners = [];
 
 (function(){
    var count = 0;
@@ -102,6 +103,24 @@ var TRACER_ATTR = 'tracer-meta';
          fragments.push(frag);
          return frag;
       }
+   })();
+
+   // Document listeners
+   (function() {
+      var addEventListener = Document.prototype.addEventListener;
+      Document.prototype.addEventListener = (function(type, listener, options, wantsUntrusted){
+         console.log("Listener! on Document");
+         addEventListener.apply(this, arguments);
+      });
+   })();
+
+   // Window listeners
+   (function() {
+      var addEventListener = Window.prototype.addEventListener;
+      Window.prototype.addEventListener = (function(type, listener, options, wantsUntrusted){
+         console.log("Listener! on Window");
+         addEventListener.apply(this, arguments);
+      });
    })();
 })();
 var metadata = {};
