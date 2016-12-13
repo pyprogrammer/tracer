@@ -182,7 +182,12 @@ function instrumentCode(code, lift=false) {
    if (typeof code !== "string") {
       return code; // Not actually a code obj
    }
-   var tree = esprima.parse(code);
+   var tree;
+   try {
+      tree = esprima.parse(code);
+   } catch (e) {
+      return code;
+   }
    instrumentEvals(tree);
    if (lift) {
       var accum = saveVariables(tree);
