@@ -106,12 +106,14 @@ var TRACER_ATTR = 'tracer-meta';
       Document.prototype.write = function(args) {
          for (var i = arguments.length-1; i >= 0; i--) {
             var doc = (new DOMParser()).parseFromString(arguments[i], "text/html");
+            instrumentNodeOrChildren(doc.body);
             document.currentScript.nextSibling.insertBefore(doc.body);
          }
       }
       Document.prototype.writeln = function(args) {
          for (var i = arguments.length-1; i >= 0; i--) {
             var doc = (new DOMParser()).parseFromString(arguments[i] + "\n", "text/html");
+            instrumentNodeOrChildren(doc.body);
             document.currentScript.nextSibling.insertBefore(doc.body);
          }
       }
